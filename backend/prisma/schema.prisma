@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// ---------- Models ----------
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(50)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  role         Role     @default(ADMIN)
+  posts        Post[]
+
+  @@map("users")
+}
+
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String     @db.VarChar(200)
+  slug       String     @unique @db.VarChar(200)
+  content    String     @db.Text
+  excerpt    String?    @db.VarChar(500)
+  coverImage String?    @map("cover_image")
+  status     PostStatus @default(DRAFT)
+  tags       String[]
+  viewCount  Int        @default(0) @map("view_count")
+  authorId   Int        @map("author_id")
+  author     User       @relation(fields: [authorId], references: [id])
+  comments   Comment[]
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@map("posts")
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  content    String    @db.Text
+  postId     Int       @map("post_id")
+  username   String    @db.VarChar(50)
+  email      String?   @db.VarChar(255)
+  websiteUrl String?   @map("website_url") @db.VarChar(500)
+  parentId   Int?      @map("parent_id")
+  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Comment[] @relation("CommentReplies")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("comments")
+}
+
+model Guestbook {
+  id        Int      @id @default(autoincrement())
+  nickname  String   @db.VarChar(100)
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("guestbook")
+}

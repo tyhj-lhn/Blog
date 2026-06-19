@@ -1,0 +1,69 @@
+# ===== OS generated files =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===== Editor / IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.code-workspace
+
+# ===== Node.js =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== Env files =====
+.env
+.env.local
+.env.*.local
+
+# ===== Build output =====
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# ===== Logs =====
+logs/
+*.log
+
+# ===== Coverage / Tests =====
+coverage/
+.nyc_output/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ===== TypeScript =====
+*.tsbuildinfo
+
+# ===== Temp / Cache =====
+*.tmp
+*.temp
+.cache/
+.turbo/
+.parcel-cache/
+
+# ===== Superpowers / Brainstorm =====
+.superpowers/
+
+# ===== Misc =====
+*.bak

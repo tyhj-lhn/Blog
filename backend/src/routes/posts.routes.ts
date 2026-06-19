@@ -20,6 +20,7 @@ const summarySelect = {
   status: true,
   tags: true,
   viewCount: true,
+  likeCount: true,
   createdAt: true,
   author: { select: { id: true, username: true } },
   _count: { select: { comments: true } },
@@ -83,6 +84,28 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     }).catch(() => {});
 
     return post;
+  });
+
+  // POST /api/posts/:slug/like — increment likeCount
+  fastify.post('/posts/:slug/like', {
+    schema: { params: postSlugParamsSchema },
+  }, async (request) => {
+    const { slug } = request.params as { slug: string };
+
+    const post = await prisma.post.findUnique({ where: { slug }, select: { id: true, status: true } });
+    if (!post || post.status !== 'PUBLISHED') throw notFound('Post');
+
+    await prisma.post.update({
+      where: { slug },
+      data: { likeCount: { increment: 1 } },
+    });
+
+    const updated = await prisma.post.findUnique({
+      where: { slug },
+      select: { likeCount: true },
+    });
+
+    return { likeCount: updated!.likeCount };
   });
 
   // GET /api/search

@@ -19,12 +19,17 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
 
+  // Fetch wallpaper from API
+  const { data: wallpaper } = useQuery<{ type: string; url: string } | null>({
+    queryKey: ['wallpaper'],
+    queryFn: () => api.get('/wallpaper'),
+  });
+
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     video.muted = !video.muted;
     setMuted(video.muted);
-    // Ensure playback resumes after unmute (some browsers pause on mute toggle)
     if (!video.muted && video.paused) {
       video.play().catch(() => {});
     }
@@ -39,16 +44,36 @@ export default function Home() {
     <div>
       {/* Hero — full-bleed video background, fills viewport */}
       <section className="relative flex flex-col min-h-screen text-center overflow-hidden">
-        {/* Background video — don't intercept clicks */}
-        <video
-          ref={videoRef}
-          src={heroVideo}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        />
+        {/* Background video — use API wallpaper or default */}
+        {wallpaper ? (
+          wallpaper.type === 'video' ? (
+            <video
+              ref={videoRef}
+              src={wallpaper.url}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
+          ) : (
+            <img
+              src={wallpaper.url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
+          )
+        ) : (
+          <video
+            ref={videoRef}
+            src={heroVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+        )}
 
         {/* Dark overlay for text readability — don't intercept clicks */}
         <div className="absolute inset-0 bg-zinc-950/55 pointer-events-none" />
@@ -94,11 +119,20 @@ export default function Home() {
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="border border-zinc-200 rounded-lg p-6 animate-pulse"
+                  className="border border-zinc-200 rounded-lg overflow-hidden animate-pulse"
                 >
-                  <div className="h-7 bg-zinc-200 rounded w-3/4 mb-3" />
-                  <div className="h-4 bg-zinc-100 rounded w-full mb-2" />
-                  <div className="h-4 bg-zinc-100 rounded w-2/3" />
+                  <div className="aspect-video bg-zinc-200" />
+                  <div className="p-5">
+                    <div className="h-7 bg-zinc-200 rounded w-3/4 mb-3" />
+                    <div className="flex gap-4 mb-3">
+                      <div className="h-4 bg-zinc-100 rounded w-20" />
+                      <div className="h-4 bg-zinc-100 rounded w-12" />
+                      <div className="h-4 bg-zinc-100 rounded w-12" />
+                      <div className="h-4 bg-zinc-100 rounded w-12" />
+                    </div>
+                    <div className="h-4 bg-zinc-100 rounded w-full mb-2" />
+                    <div className="h-4 bg-zinc-100 rounded w-2/3" />
+                  </div>
                 </div>
               ))}
             </div>

@@ -47,3 +47,12 @@ export const commentIdParamsSchema = {
     id: { type: 'integer', minimum: 1 },
   },
 };
+
+export const adminCommentQuerySchema = {
+  type: 'object',
+  properties: {
+    page: { type: 'integer', minimum: 1, default: 1 },
+    limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+    search: { type: 'string', minLength: 1 },
+  },
+};

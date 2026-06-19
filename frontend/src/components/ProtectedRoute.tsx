@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -6,10 +6,21 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuth } = useAuth();
+  const { isAuth, loading } = useAuth();
+  const location = useLocation();
+
+  // Show spinner while checking auth state (prevents flash of login page)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuth) {
-    return <Navigate to="/admin/login" replace />;
+    const returnUrl = location.pathname + location.search;
+    return <Navigate to={`/admin/login?returnUrl=${encodeURIComponent(returnUrl)}`} replace />;
   }
 
   return <>{children}</>;

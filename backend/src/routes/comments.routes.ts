@@ -9,6 +9,7 @@ import {
   createCommentSchema,
   commentPostIdParamsSchema,
   commentIdParamsSchema,
+  adminCommentQuerySchema,
 } from '../schemas/comment.schema.js';
 
 function threadedQuery(postId: number) {
@@ -85,6 +86,47 @@ export default async function commentsRoutes(fastify: FastifyInstance): Promise<
     });
 
     return reply.status(201).send(comment);
+  });
+
+  // GET /api/admin/comments — admin comment list with search
+  fastify.get('/admin/comments', {
+    preHandler: [authGuard, adminGuard],
+    schema: { querystring: adminCommentQuerySchema },
+  }, async (request) => {
+    const q = request.query as { page?: number; limit?: number; search?: string };
+    const page = q.page ?? 1;
+    const limit = q.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = q.search
+      ? {
+          OR: [
+            { username: { contains: q.search, mode: 'insensitive' as const } },
+            { content: { contains: q.search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [data, total] = await Promise.all([
+      prisma.comment.findMany({
+        where,
+        select: {
+          id: true,
+          content: true,
+          username: true,
+          email: true,
+          postId: true,
+          createdAt: true,
+          post: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.comment.count({ where }),
+    ]);
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
   });
 
   // DELETE /api/admin/comments/:id — admin only

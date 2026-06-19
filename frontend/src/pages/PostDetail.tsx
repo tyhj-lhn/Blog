@@ -1,6 +1,7 @@
+import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Eye, Tag as TagIcon } from 'lucide-react';
+import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Post, Comment } from '../types';
 import CommentTree from '../components/CommentTree';
@@ -12,6 +13,17 @@ function formatDate(iso: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+const LIKED_KEY = 'memorystory_liked_posts';
+
+function getLikedPosts(): Set<number> {
+  try {
+    const raw = localStorage.getItem(LIKED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
 }
 
 export default function PostDetail() {
@@ -27,6 +39,32 @@ export default function PostDetail() {
     queryFn: () => api.get(`/posts/${slug}`),
     enabled: !!slug,
   });
+
+  // Like state (compute from post + localStorage during render; track optimistic offset via ref)
+  const [likePending, setLikePending] = useState(false);
+  const liked = post ? getLikedPosts().has(post.id) : false;
+  const likeCount = post ? post.likeCount : 0;
+
+  const handleLike = useCallback(async () => {
+    if (!post || liked || likePending) return;
+
+    setLikePending(true);
+    const likedPosts = getLikedPosts();
+    likedPosts.add(post.id);
+    localStorage.setItem(LIKED_KEY, JSON.stringify([...likedPosts]));
+
+    try {
+      await api.post(`/posts/${post.slug}/like`);
+      // Re-fetch to get the authoritative likeCount from server
+      queryClient.invalidateQueries({ queryKey: ['post', slug] });
+    } catch {
+      // Rollback on failure
+      likedPosts.delete(post.id);
+      localStorage.setItem(LIKED_KEY, JSON.stringify([...likedPosts]));
+    } finally {
+      setLikePending(false);
+    }
+  }, [post, liked, likePending, slug, queryClient]);
 
   const {
     data: comments = [],
@@ -81,14 +119,30 @@ export default function PostDetail() {
           {post.title}
         </h1>
         <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5">
             <Calendar size={14} />
             {formatDate(post.createdAt)}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5">
             <Eye size={14} />
             {post.viewCount} 阅读
           </span>
+          <span className="flex items-center gap-1.5">
+            <MessageCircle size={14} />
+            {post._count.comments} 评论
+          </span>
+          <button
+            type="button"
+            onClick={handleLike}
+            disabled={likePending}
+            className={`flex items-center gap-1.5 transition-colors duration-150 cursor-pointer ${
+              liked ? 'text-rose-500' : 'text-zinc-400 hover:text-rose-400'
+            }`}
+            aria-label={liked ? '已点赞' : '点赞'}
+          >
+            <Heart size={14} className={`shrink-0 ${liked ? 'fill-current' : ''}`} />
+            {likeCount} 点赞
+          </button>
           {post.tags.length > 0 && (
             <span className="flex items-center gap-1">
               <TagIcon size={14} />

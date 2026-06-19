@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma.js';
+import { notFound } from '../lib/errors.js';
 import { paginationSchema } from '../schemas/common.schema.js';
-import { createGuestbookSchema } from '../schemas/guestbook.schema.js';
+import { createGuestbookSchema, guestbookIdParamsSchema } from '../schemas/guestbook.schema.js';
+import { authGuard, adminGuard } from '../middleware/auth.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
 import { sanitizeContent } from '../lib/sanitize.js';
 
@@ -36,5 +38,20 @@ export default async function guestbookRoutes(fastify: FastifyInstance): Promise
     });
 
     return reply.status(201).send(entry);
+  });
+
+  // DELETE /api/admin/guestbook/:id — admin only
+  fastify.delete('/admin/guestbook/:id', {
+    preHandler: [authGuard, adminGuard],
+    schema: { params: guestbookIdParamsSchema },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+
+    const existing = await prisma.guestbook.findUnique({ where: { id } });
+    if (!existing) throw notFound('Guestbook entry');
+
+    await prisma.guestbook.delete({ where: { id } });
+
+    return reply.status(204).send();
   });
 }

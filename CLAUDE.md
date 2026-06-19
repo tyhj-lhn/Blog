@@ -35,7 +35,7 @@ my_Blog/
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── prisma/
-│   │   ├── schema.prisma           # 4 models: User, Post, Comment, Guestbook
+│   │   ├── schema.prisma           # 5 models: User, Post, Comment, Guestbook, Wallpaper
 │   │   ├── seed.ts                 # Admin user + 2 posts + 3 comments + 2 guestbook entries
 │   │   └── migrations/
 │   └── src/
@@ -58,11 +58,12 @@ my_Blog/
 │       │   ├── auth.ts             # authGuard (JWT verify) + adminGuard
 │       │   └── rate-limit.ts       # Presets: global 100/min, auth 5/min, guestbook 3/min
 │       └── routes/
-│           ├── auth.routes.ts      # POST login, POST refresh
+│           ├── auth.routes.ts      # POST login, POST refresh, GET me
 │           ├── posts.routes.ts     # GET list/slug/search, POST/PUT/DELETE admin
-│           ├── comments.routes.ts  # GET threaded by postId, POST create, DELETE admin
+│           ├── comments.routes.ts  # GET threaded by postId, POST create, GET admin list, DELETE admin
 │           ├── tags.routes.ts      # GET all tags with counts ← unnest(tags)
-│           ├── guestbook.routes.ts # GET list, POST create
+│           ├── guestbook.routes.ts # GET list, POST create, DELETE admin
+│           ├── wallpaper.routes.ts # GET public wallpaper, GET/PUT admin wallpaper
 │           └── admin.routes.ts     # GET stats (counts + recent posts/comments)
 ├── frontend/
 │   ├── package.json
@@ -79,22 +80,32 @@ my_Blog/
 │       │   ├── api.ts              # Fetch wrapper: JWT inject, 401 refresh queue, api.get/post/put/del
 │       │   └── auth.ts             # localStorage token CRUD
 │       ├── types/
-│       │   └── index.ts            # All shared TS interfaces (Post, Comment, etc.)
+│       │   └── index.ts            # All shared TS interfaces (Post, Comment, Wallpaper, etc.)
 │       ├── hooks/
-│       │   └── useAuth.tsx         # AuthProvider + useAuth() hook
+│       │   ├── useAuth.tsx         # AuthProvider (login/logout + user rehydration)
+│       │   ├── useAuth.ts          # AuthContext + useAuth() hook
+│       │   ├── useAutoSave.ts      # localStorage draft auto-save + beforeunload guard
+│       │   └── useDebounce.ts      # Debounce hook
 │       ├── components/
-│       │   └── Layout.tsx          # Navbar (无登录链接) + Outlet
+│       │   ├── Layout.tsx          # Navbar (无登录链接) + Outlet (public blog layout)
+│       │   ├── AdminLayout.tsx     # 深色侧边栏 + 内容区管理后台布局
+│       │   ├── ConfirmDialog.tsx   # 可复用删除确认模态框
+│       │   ├── TagInput.tsx        # 芯片化标签输入组件
+│       │   └── ...                 # PostCard, CommentTree, CommentForm, etc.
 │       └── pages/
-│           ├── Home.tsx            # Title + subtitle + scroll hint (placeholder)
-│           ├── PostDetail.tsx      # Placeholder
-│           ├── TagsPage.tsx        # Placeholder
-│           ├── Guestbook.tsx       # Placeholder
-│           ├── About.tsx           # Placeholder
-│           ├── SearchPage.tsx      # Placeholder
+│           ├── Home.tsx            # Hero (video + API wallpaper) + post grid
+│           ├── PostDetail.tsx      # Article content + threaded comments
+│           ├── TagsPage.tsx        # Tag cloud
+│           ├── Guestbook.tsx       # Guestbook messages + submit form
+│           ├── About.tsx           # Static about page
+│           ├── SearchPage.tsx      # Debounced full-text search
 │           └── admin/
-│               ├── AdminLogin.tsx  # Placeholder
-│               ├── AdminDashboard.tsx # Placeholder
-│               └── PostEditor.tsx  # Placeholder
+│               ├── AdminLogin.tsx        # Centred login (independent layout)
+│               ├── AdminDashboard.tsx    # Stats + quick actions + management links
+│               ├── PostEditor.tsx        # Markdown split-pane editor + auto-save
+│               ├── CommentManagement.tsx # Comment list, search, pagination, delete
+│               ├── GuestbookManagement.tsx # Guestbook list, pagination, delete
+│               └── WallpaperAdmin.tsx    # Wallpaper type/URL + live preview
 ```
 
 ## Key Design Decisions
@@ -183,6 +194,9 @@ my_Blog/
 | `/admin/dashboard` | AdminDashboard | Auth required |
 | `/admin/posts/new` | PostEditor | Auth required |
 | `/admin/posts/:id/edit` | PostEditor | Auth required |
+| `/admin/comments` | CommentManagement | Auth required |
+| `/admin/guestbook` | GuestbookManagement | Auth required |
+| `/admin/wallpaper` | WallpaperAdmin | Auth required |
 | `*` | → redirect / | — |
 
 ## Design System — Swiss Modernism 2.0
@@ -234,6 +248,7 @@ my_Blog/
 | status | PostStatus | DRAFT / PUBLISHED |
 | tags | String[] | PostgreSQL native array |
 | viewCount | Int (default 0) | Fire-and-forget increment |
+| likeCount | Int (default 0) | Optimistic UI + localStorage dedup |
 | authorId | Int | FK → User |
 | createdAt | DateTime | auto |
 | updatedAt | DateTime | @updatedAt |
@@ -259,6 +274,14 @@ my_Blog/
 | message | Text | |
 | createdAt | DateTime | auto |
 
+### Wallpaper
+| Field | Type | Notes |
+|-------|------|-------|
+| id | Int (auto) | PK |
+| type | String (10) | `"image"` or `"video"` |
+| url | String (500) | Image/Video URL |
+| updatedAt | DateTime | @updatedAt |
+
 ## API Routes
 
 ### Public (no auth)
@@ -270,14 +293,17 @@ my_Blog/
 | GET | `/api/tags` | All tags with post counts |
 | GET | `/api/guestbook` | Guestbook messages (paginated, newest first) |
 | GET | `/api/search?q=` | Full-text search posts by title/content (max 20 results) |
+| GET | `/api/wallpaper` | Current wallpaper (type + url, for homepage hero) |
 | POST | `/api/comments` | Create comment. Body: `{content, postId, username, email?, websiteUrl?, parentId?}` |
 | POST | `/api/guestbook` | Create guestbook entry. Body: `{nickname, message}` |
+| POST | `/api/posts/:slug/like` | Increment post likeCount. Idempotent per-user via localStorage |
 
 ### Auth
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/auth/login` | Login → `{accessToken, refreshToken, user}` |
 | POST | `/api/auth/refresh` | Refresh → new token pair |
+| GET | `/api/auth/me` | Current user info (token rehydration after page refresh) |
 
 ### Protected (JWT required — authGuard middleware)
 | Method | Path | Description |
@@ -286,7 +312,11 @@ my_Blog/
 | PUT | `/api/admin/posts/:id` | Update post (regenerates slug if title changes) |
 | DELETE | `/api/admin/posts/:id` | Delete post (204) |
 | DELETE | `/api/admin/comments/:id` | Delete comment + cascade children (204) |
+| DELETE | `/api/admin/guestbook/:id` | Delete guestbook entry (204) |
 | GET | `/api/admin/stats` | Dashboard: counts + recent posts + recent comments |
+| GET | `/api/admin/comments` | All comments (paginated, searchable by username/content) |
+| GET | `/api/admin/wallpaper` | Current wallpaper record |
+| PUT | `/api/admin/wallpaper` | Upsert wallpaper (type + url) |
 
 ## Implementation Status
 
@@ -391,7 +421,123 @@ my_Blog/
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (309.9KB JS, 20.7KB CSS)
 
-### ⏳ Phase 4: Polish (Pending)
+### ✅ Phase 4: Admin Overhaul (Complete — 2026-06-19)
+
+**Backend API Expansion:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/wallpaper` | GET | Public — current wallpaper (type + url) for homepage hero |
+| `/api/admin/wallpaper` | GET/PUT | Admin — read/upsert wallpaper |
+| `/api/admin/guestbook/:id` | DELETE | Admin — delete guestbook entry |
+| `/api/admin/comments` | GET | Admin — paginated comment list with search |
+| `/api/auth/me` | GET | Current user info (rehydrate after page refresh) |
+| `prisma/schema.prisma` | — | New `Wallpaper` model (id, type, url, updatedAt) |
+
+**Frontend Layout & Auth:**
+| Feature | Implementation |
+|---------|---------------|
+| Independent admin layout | `AdminLayout.tsx` — dark sidebar (w-64, bg-zinc-900) + content area, no public nav |
+| Login page isolation | AdminLogin now fullscreen centred (`min-h-screen flex items-center justify-center`), independent of Layout |
+| Route split | `App.tsx` — three layout wrappers: `<Layout>` (public), `<AdminLayout>` (admin), no wrapper (login) |
+| Redirect-back after login | ProtectedRoute preserves `?returnUrl=`; AdminLogin reads it for post-login navigation |
+| User state rehydration | `useAuth.tsx` calls `GET /api/auth/me` on mount when token exists; `loading` state prevents login flash |
+| Logout moved to sidebar | Sidebar bottom section: user avatar + email + red logout button |
+
+**Dashboard Enhancement:**
+| Feature | Implementation |
+|---------|---------------|
+| Quick delete posts/comments | Inline trash buttons on each row; `ConfirmDialog` modal before action |
+| Management shortcut cards | 3 cards linking to comment management, guestbook management, wallpaper management |
+| Colored stat icons | Each stat card has a colored icon bg (blue/emerald/amber/violet/rose) |
+| "View all posts" link | Links to `/admin/posts` route |
+
+**Post Editor Upgrade:**
+| Feature | Implementation |
+|---------|---------------|
+| Markdown split-pane preview | Left: metadata + textarea, Right: `ReactMarkdown` + `remark-gfm` with `prose prose-zinc` |
+| Cover image URL input | URL field + live `<img>` preview with error fallback |
+| Delete post button | Edit mode only — red button in header, `ConfirmDialog` protection |
+| Draft auto-save | `useAutoSave.ts` — debounced 2s `localStorage` save + `beforeunload` guard |
+| Draft restore banner | Amber banner on new post if saved draft exists: [恢复草稿] [丢弃] |
+| Tag chip input | `TagInput.tsx` — blue chip badges, Enter/comma to add, × to remove, Backspace deletes last |
+| Removed dual status control | Only `<select>` dropdown remains (toggle button removed) |
+| Character count | Real-time `{content.length} 字` counter above textarea |
+
+**New Admin Pages:**
+| Page | Route | Features |
+|------|-------|----------|
+| `CommentManagement.tsx` | `/admin/comments` | Search by username/content, paginated list, inline delete |
+| `GuestbookManagement.tsx` | `/admin/guestbook` | Paginated list, inline delete |
+| `WallpaperAdmin.tsx` | `/admin/wallpaper` | Radio type (image/video), URL input, live preview, save |
+
+**New Shared Components:**
+| Component | Purpose |
+|-----------|---------|
+| `ConfirmDialog.tsx` | Modal with danger/default variant, Escape-to-close, loading state |
+| `TagInput.tsx` | Chip-based tag editor (enter/comma add, × remove, backspace delete) |
+| `useAutoSave.ts` | localStorage draft persistence + restore banner + beforeunload |
+
+**Homepage Wallpaper Integration:**
+- `Home.tsx` fetches `GET /api/wallpaper` via TanStack Query
+- Renders `<video>` or `<img>` from API URL, falls back to hardcoded `heroVideo` if null
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (493.4KB JS, 32.0KB CSS, bundle increased due to react-markdown)
+
+### ✅ Phase 4.1: 博文卡片样式升级 & 点赞系统 (2026-06-19)
+
+**数据库变更:**
+| 变更 | 详情 |
+|------|------|
+| Post 新增 `likeCount` | `Int @default(0)` — 迁移 `20260619091757_add_like_count` |
+
+**后端新增:**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/posts/:slug/like` | POST | 原子递增 `likeCount`，返回 `{likeCount}` |
+| `summarySelect` | — | 所有文章列表查询现包含 `likeCount` |
+
+**PostCard 全新卡片样式:**
+
+| 区域 | 实现 |
+|------|------|
+| 🖼️ 封面图 | 16:9 (`aspect-video`)，hover 缩放 `scale-105`，无图时 `ImageIcon` + 渐变占位 |
+| 📝 标题 | Caveat 手写体，hover 变蓝 |
+| 📅 日期 | `Calendar` 图标 + 中文格式 |
+| 👁️ 浏览量 | `Eye` 图标 + 数字 |
+| 💬 评论数 | `MessageCircle` 图标 + 数字 |
+| ❤️ 点赞 | `Heart` 图标 + 数字，可点击 — 乐观更新 + localStorage 去重 + 失败回滚 |
+| 🏷️ 标签 | 圆角芯片（tags 在上移，摘要在下移） |
+| 📄 摘要 | `line-clamp-2` 两行截断 |
+| 🔘 交互 | 整卡 `overflow-hidden rounded-lg`，hover 阴影 + 蓝色边框 |
+
+**PostDetail 页头增强:**
+| 新增 | 实现 |
+|------|------|
+| 评论数 | `MessageCircle` + `post._count.comments 评论` |
+| 点赞按钮 | 同款 `Heart`，点击后 `invalidateQueries` 重新获取服务端权威计数 |
+
+**Home 骨架屏更新:**
+- 骨架卡片匹配新布局：封面占位 + 标题行 + 4 列元数据行 + 摘要行
+
+**点赞去重机制:**
+- 前端 `localStorage` key `memorystory_liked_posts` 存储已点赞 post ID 集合
+- PostCard 组件级 `useState` 初始化时读取 localStorage
+- PostDetail 从 post 数据 + localStorage 计算 `liked` 状态（渲染中计算，无 effect）
+- 点赞请求失败时回滚 localStorage
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [schema.prisma](backend/prisma/schema.prisma) | Post 模型新增 `likeCount` |
+| [posts.routes.ts](backend/src/routes/posts.routes.ts) | `summarySelect` +`likeCount`，新增 `POST /:slug/like` |
+| [types/index.ts](frontend/src/types/index.ts) | `PostSummary` +`likeCount` |
+| [PostCard.tsx](frontend/src/components/PostCard.tsx) | 全面重写 — 封面图 + 4 图标元数据行 + 点赞交互 |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | 页头 + 评论数 + 点赞按钮 |
+| [Home.tsx](frontend/src/pages/Home.tsx) | 骨架屏匹配新卡片布局 |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (496KB JS, 35KB CSS)
+
+### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)
 - [ ] `prefers-reduced-motion` verification

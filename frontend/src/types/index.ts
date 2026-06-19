@@ -39,6 +39,7 @@ export interface PostSummary {
   status: PostStatus;
   tags: string[];
   viewCount: number;
+  likeCount: number;
   createdAt: string;
   author: { id: number; username: string };
   _count: { comments: number };
@@ -92,4 +93,21 @@ export interface AdminStats {
   recentComments: (Pick<Comment, 'id' | 'content' | 'username' | 'createdAt'> & {
     post: { id: number; title: string };
   })[];
+}
+
+export interface AdminComment {
+  id: number;
+  content: string;
+  username: string;
+  email: string | null;
+  postId: number;
+  post: { id: number; title: string };
+  createdAt: string;
+}
+
+export interface Wallpaper {
+  id: number;
+  type: 'image' | 'video';
+  url: string;
+  updatedAt: string;
 }

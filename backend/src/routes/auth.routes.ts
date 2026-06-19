@@ -5,6 +5,7 @@ import { generateTokenPair, verifyRefreshToken } from '../lib/jwt.js';
 import { unauthorized } from '../lib/errors.js';
 import { loginSchema, refreshSchema } from '../schemas/auth.schema.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
+import { authGuard } from '../middleware/auth.js';
 import { checkLockout, recordFailedAttempt, resetFailedAttempts } from '../lib/login-guard.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -75,5 +76,17 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     });
+  });
+
+  // GET /api/auth/me — rehydrate user state on page refresh
+  fastify.get('/me', {
+    preHandler: [authGuard],
+  }, async (request) => {
+    const user = await prisma.user.findUnique({
+      where: { id: request.userId! },
+      select: { id: true, username: true, email: true, role: true },
+    });
+    if (!user) throw unauthorized('User no longer exists');
+    return user;
   });
 }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -14,6 +15,9 @@ import SearchPage from './pages/SearchPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PostEditor from './pages/admin/PostEditor';
+import CommentManagement from './pages/admin/CommentManagement';
+import GuestbookManagement from './pages/admin/GuestbookManagement';
+import WallpaperAdmin from './pages/admin/WallpaperAdmin';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +28,7 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public routes — use blog Layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/post/:slug" element={<PostDetail />} />
@@ -31,34 +36,29 @@ function AppRoutes() {
         <Route path="/guestbook" element={<Guestbook />} />
         <Route path="/about" element={<About />} />
         <Route path="/search" element={<SearchPage />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/posts/new"
-          element={
-            <ProtectedRoute>
-              <PostEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/posts/:id/edit"
-          element={
-            <ProtectedRoute>
-              <PostEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
+
+      {/* Admin login — no layout (centered minimal) */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      {/* Admin pages — use AdminLayout with sidebar */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/posts/new" element={<PostEditor />} />
+        <Route path="/admin/posts/:id/edit" element={<PostEditor />} />
+        <Route path="/admin/comments" element={<CommentManagement />} />
+        <Route path="/admin/guestbook" element={<GuestbookManagement />} />
+        <Route path="/admin/wallpaper" element={<WallpaperAdmin />} />
+      </Route>
+
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

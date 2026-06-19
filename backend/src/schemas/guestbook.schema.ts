@@ -14,3 +14,11 @@ export const createGuestbookSchema = {
     },
   },
 };
+
+export const guestbookIdParamsSchema = {
+  type: 'object',
+  required: ['id'],
+  properties: {
+    id: { type: 'integer', minimum: 1 },
+  },
+};

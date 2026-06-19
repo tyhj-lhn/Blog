@@ -42,6 +42,7 @@ model Post {
   status     PostStatus @default(DRAFT)
   tags       String[]
   viewCount  Int        @default(0) @map("view_count")
+  likeCount  Int        @default(0) @map("like_count")
   authorId   Int        @map("author_id")
   author     User       @relation(fields: [authorId], references: [id])
   comments   Comment[]
@@ -75,4 +76,13 @@ model Guestbook {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("guestbook")
+}
+
+model Wallpaper {
+  id        Int      @id @default(autoincrement())
+  type      String   @db.VarChar(10) // "image" | "video"
+  url       String   @db.VarChar(500)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("wallpaper")
 }

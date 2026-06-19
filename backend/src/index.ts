@@ -13,6 +13,7 @@ import postsRoutes from './routes/posts.routes.js';
 import commentsRoutes from './routes/comments.routes.js';
 import tagsRoutes from './routes/tags.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import wallpaperRoutes from './routes/wallpaper.routes.js';
 
 export function buildApp() {
   const fastify = Fastify({
@@ -40,6 +41,7 @@ export function buildApp() {
   fastify.register(commentsRoutes, { prefix: '/api' });
   fastify.register(tagsRoutes, { prefix: '/api' });
   fastify.register(adminRoutes, { prefix: '/api' });
+  fastify.register(wallpaperRoutes, { prefix: '/api' });
 
   // ---- Error handler ----
   fastify.setErrorHandler((error: unknown, request, reply) => {

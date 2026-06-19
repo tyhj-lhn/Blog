@@ -312,22 +312,43 @@ my_Blog/
 - **Production Safety:** `validateSecrets()` throws at startup in production if JWT secrets are not set
 - **Email Normalization:** login email `toLowerCase().trim()` before DB lookup
 
-### ⏳ Phase 3: Frontend Core (In Progress)
+### ✅ Phase 3: Frontend Core (Complete — 2026-06-19)
 - [x] Scaffold: Vite + React + Tailwind + Router + TanStack Query + types
 - [x] API integration layer: api.ts (fetch + 401 queue), auth.ts (token storage)
 - [x] Auth context: useAuth.tsx (login/logout/user state)
 - [x] Layout + Navbar (no login link, all public nav items)
 - [x] All route/page stubs registered in App.tsx
-- [ ] Home page — full implementation (above-fold + post grid + load more)
-- [ ] PostDetail page — content rendering + comment tree + comment form
-- [ ] TagsPage — tag cloud/list with post counts
-- [ ] Guestbook — message list + submit form
-- [ ] About page
-- [ ] SearchPage — results list
-- [ ] AdminLogin — login form with redirect
-- [ ] AdminDashboard — stats + quick actions
-- [ ] PostEditor — Markdown editor + create/edit
-- [ ] Shared components: PostCard, CommentTree, CommentForm, SearchBar, Pagination
+- [x] Home page — hero + post grid 2-col + skeleton loading + pagination
+- [x] PostDetail page — content + comment tree (recursive, colored borders) + comment form
+- [x] TagsPage — tag cloud, links to /search?q=
+- [x] Guestbook — message list (paginated) + submit form
+- [x] About page — static, Lucide only, no emoji
+- [x] SearchPage — debounced search + PostCard results
+- [x] AdminLogin — login form → useAuth().login() → redirect
+- [x] AdminDashboard — 5 stats cards + recent posts/comments + logout
+- [x] PostEditor — create/edit, Markdown textarea, draft/publish toggle
+- [x] 7 shared components: PostCard, CommentTree, CommentForm, SearchBar, Pagination, ProtectedRoute, ScrollToTop
+- [x] Backend: `GET /api/admin/posts/:id` added for PostEditor edit mode
+
+### ✅ Phase 3.1: Frontend Code Quality Cleanup (2026-06-19)
+
+**Tailwind canonical classes:**
+| File | Changes |
+|------|---------|
+| [CommentForm.tsx](frontend/src/components/CommentForm.tsx) | 5× `min-h-[44px]` → `min-h-11` |
+| [SearchBar.tsx](frontend/src/components/SearchBar.tsx) | `min-h-[44px]`→`min-h-11`, `min-w-[28px] min-h-[28px]`→`min-w-7 min-h-7` |
+| [About.tsx](frontend/src/pages/About.tsx) | `min-h-[44px]` → `min-h-11` |
+| [Guestbook.tsx](frontend/src/pages/Guestbook.tsx) | 3× `min-h-[44px]` → `min-h-11` |
+| [TagsPage.tsx](frontend/src/pages/TagsPage.tsx) | `min-h-[44px]` → `min-h-11` |
+
+**ESLint error fixes:**
+| File | Error | Fix |
+|------|-------|-----|
+| [SearchBar.tsx](frontend/src/components/SearchBar.tsx) | `react-refresh/only-export-components` | useDebounce → [hooks/useDebounce.ts](frontend/src/hooks/useDebounce.ts) |
+| [useAuth.tsx](frontend/src/hooks/useAuth.tsx) | `react-refresh/only-export-components` | 拆分: [useAuth.ts](frontend/src/hooks/useAuth.ts) (context+hook) + [useAuth.tsx](frontend/src/hooks/useAuth.tsx) (component only) |
+| [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | `react-hooks/set-state-in-effect` | React Query 同步是合理模式，添加 eslint-disable 包裹 |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (309.9KB JS, 20.7KB CSS)
 
 ### ⏳ Phase 4: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

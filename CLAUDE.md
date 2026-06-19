@@ -537,6 +537,33 @@ my_Blog/
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (496KB JS, 35KB CSS)
 
+### ✅ Phase 4.2: 博文详情页白屏修复 (2026-06-19)
+
+**Bug:** 点击博文卡片后，博文内容闪一下然后整个页面变成纯白。
+
+**根本原因:** 评论 API 形状不匹配 — `GET /api/comments/:postId` 返回 `{ data: Comment[], total: number }`，但前端 `useQuery<Comment[]>` 将响应直接视为数组。`CommentTree` 渲染时调用 `comments.map()` 失败（对象无 `.map` 方法），抛出 TypeError → React 组件树崩溃 → 白屏。
+
+**崩溃链:**
+1. Post 查询成功 → 博文内容先渲染（"一闪"）
+2. 评论查询完成 → `comments` 实际是 `{ data: [...], total: 7 }`
+3. `CommentTree` 中 `comments.map()` → **TypeError: comments.map is not a function**
+4. 未捕获渲染异常 → React 卸载整个组件树 → 纯白
+
+**修复:**
+| 文件 | 改动 | 说明 |
+|------|------|------|
+| [PostDetail.tsx:74-75](frontend/src/pages/PostDetail.tsx#L74-L75) | `queryFn` 解包 `.data` | `.then((r) => r.data)` — 根因修复 |
+| [ErrorBoundary.tsx](frontend/src/components/ErrorBoundary.tsx) | 新建 | Class component `getDerivedStateFromError`，捕获渲染异常显示降级 UI |
+| [App.tsx:5](frontend/src/App.tsx#L5) | 导入 ErrorBoundary，包裹 `<AppRoutes />` | 防御性：未来任何组件级渲染 crash 不会白屏 |
+| [index.html:9](frontend/index.html#L9) | `<body class="bg-zinc-50">` | 防御性：SPA 冷加载时不闪白 |
+
+**为什么之前排查困难:**
+- 博文内容能短暂显示，说明 Post API + PostDetail 渲染正常 → 排除了 ReactMarkdown（当时的怀疑对象，实际上 PostDetail 根本没在用）
+- Post API 返回裸对象（非 `{ data }` 包装），前端类型正确 → 让人觉得"API 形状没问题"
+- 唯独 `GET /api/comments/:postId` 用了 `{ data, total }` 包装（与其他 list 端点一致），但单条评论查询没有 "单个 vs 列表" 的区分感 → 遗漏
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (498KB JS, 35KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

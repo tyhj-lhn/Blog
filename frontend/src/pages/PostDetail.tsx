@@ -71,7 +71,8 @@ export default function PostDetail() {
     isLoading: commentsLoading,
   } = useQuery<Comment[]>({
     queryKey: ['comments', post?.id],
-    queryFn: () => api.get(`/comments/${post!.id}`),
+    queryFn: () =>
+      api.get<{ data: Comment[] }>(`/comments/${post!.id}`).then((r) => r.data),
     enabled: !!post?.id,
   });
 

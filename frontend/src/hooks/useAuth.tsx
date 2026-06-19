@@ -1,16 +1,8 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { api } from '../lib/api';
 import { setTokens, clearTokens, isAuthenticated } from '../lib/auth';
-import type { User, LoginResponse } from '../types';
-
-interface AuthContextValue {
-  user: User | null;
-  isAuth: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import type { LoginResponse, User } from '../types';
+import { AuthContext } from './useAuth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -31,10 +23,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

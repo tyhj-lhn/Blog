@@ -88,7 +88,7 @@ export interface AdminStats {
   draftPosts: number;
   totalComments: number;
   totalGuestbook: number;
-  recentPosts: Pick<PostSummary, 'id' | 'title' | 'status' | 'viewCount' | 'createdAt'>[];
+  recentPosts: Pick<PostSummary, 'id' | 'title' | 'slug' | 'status' | 'viewCount' | 'createdAt'>[];
   recentComments: (Pick<Comment, 'id' | 'content' | 'username' | 'createdAt'> & {
     post: { id: number; title: string };
   })[];

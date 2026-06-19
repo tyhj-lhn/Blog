@@ -107,6 +107,23 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return { data, total: data.length, page: 1, totalPages: 1 };
   });
 
+  // GET /api/admin/posts/:id — single post by ID (protected, any status)
+  fastify.get('/admin/posts/:id', {
+    preHandler: [authGuard],
+    schema: { params: postIdParamsSchema },
+  }, async (request) => {
+    const { id } = request.params as { id: number };
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: { author: { select: { id: true, username: true } }, _count: { select: { comments: true } } },
+    });
+
+    if (!post) throw notFound('Post');
+
+    return post;
+  });
+
   // POST /api/admin/posts — create (protected)
   fastify.post('/admin/posts', {
     preHandler: [authGuard],

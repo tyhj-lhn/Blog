@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider } from './hooks/useAuth.tsx';
 import Layout from './components/Layout';
+import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Page stubs
 import Home from './pages/Home';
 import PostDetail from './pages/PostDetail';
 import TagsPage from './pages/TagsPage';
@@ -20,27 +21,55 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/post/:slug" element={<PostDetail />} />
+        <Route path="/tags" element={<TagsPage />} />
+        <Route path="/guestbook" element={<Guestbook />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/posts/new"
+          element={
+            <ProtectedRoute>
+              <PostEditor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/posts/:id/edit"
+          element={
+            <ProtectedRoute>
+              <PostEditor />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/post/:slug" element={<PostDetail />} />
-              <Route path="/tags" element={<TagsPage />} />
-              <Route path="/guestbook" element={<Guestbook />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/posts/new" element={<PostEditor />} />
-              <Route path="/admin/posts/:id/edit" element={<PostEditor />} />
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
+          <ScrollToTop />
+          <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

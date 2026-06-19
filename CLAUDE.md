@@ -69,6 +69,8 @@ my_Blog/
 │   ├── vite.config.ts              # React + Tailwind plugins, /api → :3001 proxy
 │   ├── tsconfig.app.json           # Strict TS with verbatimModuleSyntax
 │   ├── index.html                  # Google Fonts preloaded in CSS
+│   ├── images/
+│   │   └── Suvan_2k_02b29.mp4      # Hero background video
 │   └── src/
 │       ├── main.tsx                # StrictMode + createRoot
 │       ├── App.tsx                  # Router + QueryClient + AuthProvider
@@ -329,6 +331,45 @@ my_Blog/
 - [x] PostEditor — create/edit, Markdown textarea, draft/publish toggle
 - [x] 7 shared components: PostCard, CommentTree, CommentForm, SearchBar, Pagination, ProtectedRoute, ScrollToTop
 - [x] Backend: `GET /api/admin/posts/:id` added for PostEditor edit mode
+
+### ✅ Phase 3.2: Hero Redesign & Nav Scroll UX (2026-06-19)
+
+**Hero — full-viewport video background with ambient audio:**
+| Feature | Implementation |
+|---------|---------------|
+| Video background | `<video>` fills hero via `absolute inset-0 object-cover`, imported from `frontend/images/Suvan_2k_02b29.mp4` as ES module |
+| Seamless loop | `autoPlay loop muted playsInline` — native HTML5 video attributes |
+| Background audio | Click speaker button to unmute → `video.muted = false` + `video.play()` fallback for paused state |
+| Readability | `bg-zinc-950/55` dark overlay between video and text |
+| Event layering | `pointer-events-none` on video + overlay, `pointer-events-auto` on interactive buttons — prevents click interception |
+| Sound toggle | Top-right `z-20` button: `VolumeX` (muted) ↔ `Volume2` (unmuted), `bg-white/10 backdrop-blur` glass pill |
+| Text centering | `flex-1 flex items-center justify-center` — title + subtitle always vertically centred |
+| Scroll hint | `pb-8 pointer-events-auto` near bottom, click → `scrollIntoView({ behavior: 'smooth' })` to post grid |
+| Cross-browser | Standard CSS flex + object-cover — Chrome, Edge, Firefox, Safari all supported |
+
+**Navbar — sticky with scroll-aware show/hide:**
+| Feature | Implementation |
+|---------|---------------|
+| Sticky positioning | `sticky top-0 z-50` with `bg-zinc-50/95 backdrop-blur` glass effect |
+| Hide on scroll down | When `scrollY > 80px` and direction is down → `-translate-y-full` |
+| Show on scroll up | Any upward scroll → `translate-y-0` |
+| Always show at top | `scrollY <= 0` → force visible |
+| Smooth animation | `transition-transform duration-300` |
+| Performance | `requestAnimationFrame` throttle + `passive: true` scroll listener |
+
+**Layout container refactoring:**
+| File | Change | Reason |
+|------|--------|--------|
+| [Layout.tsx](frontend/src/components/Layout.tsx) | `main` → no padding/width constraints | Let `Home.tsx` hero bleed full-bleed |
+| [Home.tsx](frontend/src/pages/Home.tsx) | Posts section → `bg-white` + internal `max-w-4xl mx-auto` | Full-width white band contrasting with dark hero |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | Outermost `<div>` → `max-w-4xl mx-auto px-4 py-8` | Self-contained width constraint |
+| [TagsPage.tsx](frontend/src/pages/TagsPage.tsx) | Same container added | — |
+| [Guestbook.tsx](frontend/src/pages/Guestbook.tsx) | Same container added | — |
+| [About.tsx](frontend/src/pages/About.tsx) | Same container added | — |
+| [SearchPage.tsx](frontend/src/pages/SearchPage.tsx) | Same container added | — |
+| [AdminLogin.tsx](frontend/src/pages/admin/AdminLogin.tsx) | Same container added (px-4 added) | — |
+| [AdminDashboard.tsx](frontend/src/pages/admin/AdminDashboard.tsx) | Same container added | — |
+| [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | Same container added | — |
 
 ### ✅ Phase 3.1: Frontend Code Quality Cleanup (2026-06-19)
 

@@ -49,7 +49,7 @@ export function buildApp() {
       });
     }
 
-    const err = error as { validation?: unknown; message?: string };
+    const err = error as { validation?: unknown; message?: string; statusCode?: number; code?: string };
     if (err.validation) {
       return reply.status(400).send({
         error: {
@@ -57,6 +57,13 @@ export function buildApp() {
           message: err.message ?? 'Validation failed',
           details: err.validation,
         },
+      });
+    }
+
+    // Handle Fastify framework errors that carry their own statusCode
+    if (err.statusCode) {
+      return reply.status(err.statusCode).send({
+        error: { code: err.code ?? 'REQUEST_ERROR', message: err.message ?? 'Request error' },
       });
     }
 

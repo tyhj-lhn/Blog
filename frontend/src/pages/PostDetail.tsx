@@ -56,21 +56,24 @@ export default function PostDetail() {
 
   if (postLoading) {
     return (
-      <div className="animate-pulse space-y-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="animate-pulse space-y-4">
         <div className="h-10 bg-zinc-200 rounded w-1/2" />
         <div className="h-5 bg-zinc-100 rounded w-1/4" />
         <div className="h-4 bg-zinc-100 rounded w-full" />
         <div className="h-4 bg-zinc-100 rounded w-full" />
         <div className="h-4 bg-zinc-100 rounded w-3/4" />
       </div>
+      </div>
     );
   }
 
   if (postError || !post) {
-    return <p className="text-zinc-500 text-center py-12">文章未找到</p>;
+    return <div className="max-w-4xl mx-auto px-4 py-8"><p className="text-zinc-500 text-center py-12">文章未找到</p></div>;
   }
 
   return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
     <article>
       {/* Post header */}
       <header className="mb-8">
@@ -138,5 +141,6 @@ export default function PostDetail() {
         )}
       </section>
     </article>
+    </div>
   );
 }

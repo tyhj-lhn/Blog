@@ -38,7 +38,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-heading text-3xl text-zinc-900">管理后台</h1>
         <div className="flex items-center gap-3">

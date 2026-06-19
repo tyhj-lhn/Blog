@@ -31,7 +31,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="max-w-sm mx-auto py-16">
+    <div className="max-w-sm mx-auto px-4 py-16">
       <h1 className="font-heading text-4xl text-zinc-900 mb-8 text-center">管理员登录</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

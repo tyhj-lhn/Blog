@@ -1,10 +1,15 @@
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 
-interface TokenPayload {
+// ---- Types ----
+
+export interface TokenPayload {
   id: number;
   role: string;
+  tokenVersion: number;
 }
+
+// ---- Secrets ----
 
 function accessSecret(): string {
   return process.env.JWT_ACCESS_SECRET || 'dev-access-secret';
@@ -14,16 +19,56 @@ function refreshSecret(): string {
   return process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret';
 }
 
-export function generateAccessToken(user: TokenPayload): string {
-  return jwt.sign({ id: user.id, role: user.role }, accessSecret(), {
-    expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as SignOptions['expiresIn'],
-  });
+// ---- Startup validation ----
+
+/**
+ * Call at startup. Logs a warning if dev defaults are used.
+ * Throws in production if secrets are not explicitly set.
+ */
+export function validateSecrets(logger: { warn: (msg: string) => void }): void {
+  const missing: string[] = [];
+
+  if (!process.env.JWT_ACCESS_SECRET) {
+    missing.push('JWT_ACCESS_SECRET');
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    missing.push('JWT_REFRESH_SECRET');
+  }
+
+  if (missing.length > 0) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        `FATAL: Missing required env vars in production: ${missing.join(', ')}. ` +
+        'Dev defaults are not allowed in production.',
+      );
+    }
+    logger.warn(
+      `WARNING: Using dev defaults for: ${missing.join(', ')}. ` +
+      'Set these environment variables before deploying to production.',
+    );
+  }
 }
 
-export function generateRefreshToken(userId: number): string {
-  return jwt.sign({ id: userId }, refreshSecret(), {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
-  });
+// ---- Generation ----
+
+export function generateAccessToken(payload: TokenPayload): string {
+  return jwt.sign(
+    { id: payload.id, role: payload.role, tokenVersion: payload.tokenVersion },
+    accessSecret(),
+    {
+      expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as SignOptions['expiresIn'],
+    },
+  );
+}
+
+export function generateRefreshToken(userId: number, tokenVersion: number): string {
+  return jwt.sign(
+    { id: userId, tokenVersion },
+    refreshSecret(),
+    {
+      expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    },
+  );
 }
 
 export function generateTokenPair(user: TokenPayload): {
@@ -32,15 +77,21 @@ export function generateTokenPair(user: TokenPayload): {
 } {
   return {
     accessToken: generateAccessToken(user),
-    refreshToken: generateRefreshToken(user.id),
+    refreshToken: generateRefreshToken(user.id, user.tokenVersion),
   };
 }
+
+// ---- Verification ----
 
 export function verifyAccessToken(token: string): TokenPayload | null {
   try {
     const decoded = jwt.verify(token, accessSecret()) as jwt.JwtPayload;
-    if (typeof decoded.id === 'number' && typeof decoded.role === 'string') {
-      return { id: decoded.id, role: decoded.role };
+    if (
+      typeof decoded.id === 'number' &&
+      typeof decoded.role === 'string' &&
+      typeof decoded.tokenVersion === 'number'
+    ) {
+      return { id: decoded.id, role: decoded.role, tokenVersion: decoded.tokenVersion };
     }
     return null;
   } catch {
@@ -48,10 +99,13 @@ export function verifyAccessToken(token: string): TokenPayload | null {
   }
 }
 
-export function verifyRefreshToken(token: string): number | null {
+export function verifyRefreshToken(token: string): { userId: number; tokenVersion: number } | null {
   try {
     const decoded = jwt.verify(token, refreshSecret()) as jwt.JwtPayload;
-    return typeof decoded.id === 'number' ? decoded.id : null;
+    if (typeof decoded.id === 'number' && typeof decoded.tokenVersion === 'number') {
+      return { userId: decoded.id, tokenVersion: decoded.tokenVersion };
+    }
+    return null;
   } catch {
     return null;
   }

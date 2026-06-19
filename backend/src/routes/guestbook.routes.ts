@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import { paginationSchema } from '../schemas/common.schema.js';
 import { createGuestbookSchema } from '../schemas/guestbook.schema.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
+import { sanitizeContent } from '../lib/sanitize.js';
 
 export default async function guestbookRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/guestbook', {
@@ -28,7 +29,10 @@ export default async function guestbookRoutes(fastify: FastifyInstance): Promise
     const { nickname, message } = request.body as { nickname: string; message: string };
 
     const entry = await prisma.guestbook.create({
-      data: { nickname: nickname.trim(), message: message.trim() },
+      data: {
+        nickname: sanitizeContent(nickname),
+        message: sanitizeContent(message),
+      },
     });
 
     return reply.status(201).send(entry);

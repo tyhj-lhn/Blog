@@ -2,8 +2,9 @@ import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma.js';
 import { notFound, validationError } from '../lib/errors.js';
 import { buildCommentTree, FlatComment } from '../lib/comments.js';
-import { authGuard } from '../middleware/auth.js';
+import { authGuard, adminGuard } from '../middleware/auth.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
+import { sanitizeContent } from '../lib/sanitize.js';
 import {
   createCommentSchema,
   commentPostIdParamsSchema,
@@ -74,9 +75,9 @@ export default async function commentsRoutes(fastify: FastifyInstance): Promise<
 
     const comment = await prisma.comment.create({
       data: {
-        content: body.content.trim(),
+        content: sanitizeContent(body.content),
         postId: body.postId,
-        username: body.username.trim(),
+        username: sanitizeContent(body.username),
         email: body.email?.trim() ?? null,
         websiteUrl: body.websiteUrl?.trim() ?? null,
         parentId: body.parentId ?? null,
@@ -88,7 +89,7 @@ export default async function commentsRoutes(fastify: FastifyInstance): Promise<
 
   // DELETE /api/admin/comments/:id — admin only
   fastify.delete('/admin/comments/:id', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
     schema: { params: commentIdParamsSchema },
   }, async (request, reply) => {
     const { id } = request.params as { id: number };

@@ -9,6 +9,7 @@ export const loginSchema = {
     password: {
       type: 'string',
       minLength: 6,
+      maxLength: 128,
     },
   },
 };

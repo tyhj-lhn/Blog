@@ -5,6 +5,7 @@ import { generateTokenPair, verifyRefreshToken } from '../lib/jwt.js';
 import { unauthorized } from '../lib/errors.js';
 import { loginSchema, refreshSchema } from '../schemas/auth.schema.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
+import { checkLockout, recordFailedAttempt, resetFailedAttempts } from '../lib/login-guard.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/login', {
@@ -13,13 +14,32 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   }, async (request, reply) => {
     const { email, password } = request.body as { email: string; password: string };
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw unauthorized('Invalid credentials');
+    // Normalize email: lowercase + trim
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check progressive lockout BEFORE DB query
+    checkLockout(normalizedEmail);
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user) {
+      recordFailedAttempt(normalizedEmail);
+      throw unauthorized('Invalid credentials');
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw unauthorized('Invalid credentials');
+    if (!valid) {
+      recordFailedAttempt(normalizedEmail);
+      throw unauthorized('Invalid credentials');
+    }
 
-    const tokens = generateTokenPair({ id: user.id, role: user.role });
+    // Successful login — reset lockout counter
+    resetFailedAttempts(normalizedEmail);
+
+    const tokens = generateTokenPair({
+      id: user.id,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    });
 
     return reply.send({
       accessToken: tokens.accessToken,
@@ -34,13 +54,22 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   }, async (request, reply) => {
     const { refreshToken } = request.body as { refreshToken: string };
 
-    const userId = verifyRefreshToken(refreshToken);
-    if (!userId) throw unauthorized('Invalid or expired refresh token');
+    const decoded = verifyRefreshToken(refreshToken);
+    if (!decoded) throw unauthorized('Invalid or expired refresh token');
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user) throw unauthorized('User no longer exists');
 
-    const tokens = generateTokenPair({ id: user.id, role: user.role });
+    // Verify tokenVersion matches DB (enables token revocation)
+    if (decoded.tokenVersion !== user.tokenVersion) {
+      throw unauthorized('Token has been revoked — please log in again');
+    }
+
+    const tokens = generateTokenPair({
+      id: user.id,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    });
 
     return reply.send({
       accessToken: tokens.accessToken,

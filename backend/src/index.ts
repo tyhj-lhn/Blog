@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import { AppError } from './lib/errors.js';
 import prisma from './lib/prisma.js';
 import { rateLimitPresets } from './middleware/rate-limit.js';
+import { validateSecrets } from './lib/jwt.js';
 
 import authRoutes from './routes/auth.routes.js';
 import guestbookRoutes from './routes/guestbook.routes.js';
@@ -16,7 +17,11 @@ import adminRoutes from './routes/admin.routes.js';
 export function buildApp() {
   const fastify = Fastify({
     logger: { level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug' },
+    bodyLimit: 524288, // 512 KB — sufficient for blog content, prevents DoS
   });
+
+  // Validate JWT secrets at startup (production safety check)
+  validateSecrets(fastify.log);
 
   // ---- Plugins ----
   fastify.register(cors, {

@@ -5,6 +5,7 @@ export const createCommentSchema = {
     content: {
       type: 'string',
       minLength: 1,
+      maxLength: 10000,
     },
     postId: {
       type: 'integer',

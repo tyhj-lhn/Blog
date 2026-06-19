@@ -26,6 +26,7 @@ model User {
   email        String   @unique @db.VarChar(255)
   passwordHash String   @map("password_hash")
   role         Role     @default(ADMIN)
+  tokenVersion Int      @default(0) @map("token_version")
   posts        Post[]
 
   @@map("users")

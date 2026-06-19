@@ -44,7 +44,9 @@ my_Blog/
 │       │   ├── errors.ts           # AppError class + factory functions
 │       │   ├── prisma.ts           # PrismaClient singleton
 │       │   ├── slugify.ts          # Title → URL-safe slug
-│       │   ├── jwt.ts              # Token generation/verification
+│       │   ├── jwt.ts              # Token generation/verification + validateSecrets
+│       │   ├── sanitize.ts         # XSS filter — strips all HTML from user input
+│       │   ├── login-guard.ts      # Progressive account lockout (5→15min, 10→1h)
 │       │   └── comments.ts         # buildCommentTree() — O(n) two-pass
 │       ├── schemas/                # Fastify JSON Schema validation
 │       │   ├── common.schema.ts    # Pagination + search query
@@ -133,6 +135,25 @@ my_Blog/
 - All routes use Fastify JSON Schema (not Zod) via `schema: { body, params, querystring }` options
 - Common schemas: pagination (page/limit, integers, min 1/max 100), search (q, minLength 1, maxLength 200)
 
+#### Content Sanitization (XSS Prevention)
+- `sanitizeContent()` in `lib/sanitize.ts` — centralized XSS filter using `xss` library
+- Empty whitelist model: strips ALL HTML tags, attributes, event handlers, and comments
+- Applied to all public user input before DB insert: `comment.content`, `comment.username`, `guestbook.nickname`, `guestbook.message`
+- Also trims whitespace, handles Unicode homoglyph attacks
+
+#### Progressive Login Lockout
+- `lib/login-guard.ts` — in-memory Map tracking failed attempts per email
+- Tier 1: 5 failures → 15 minute lockout / Tier 2: 10 failures → 1 hour lockout
+- 30-minute idle window resets counter (prevents punishing legitimate users)
+- `checkLockout()` called BEFORE DB query to prevent timing side-channel enumeration
+- `recordFailedAttempt()` called on both "user not found" and "wrong password" (uniform behavior)
+
+#### Token Revocation
+- `tokenVersion` field on User model, embedded in both access and refresh JWT payloads
+- Refresh endpoint verifies `decoded.tokenVersion === user.tokenVersion`
+- Incrementing `tokenVersion` in DB instantly invalidates all existing tokens for that user
+- `validateSecrets()` at startup: throws in production if JWT secrets not set, warns in dev
+
 ### Frontend Patterns
 
 #### 401 Refresh Queue
@@ -197,6 +218,7 @@ my_Blog/
 | email | String @unique (255) | |
 | passwordHash | String | bcryptjs cost 12 |
 | role | Role | ADMIN only |
+| tokenVersion | Int (default 0) | For refresh token revocation |
 
 ### Post
 | Field | Type | Notes |
@@ -281,6 +303,15 @@ my_Blog/
 - Threaded comment tree builder
 - Fire-and-forget viewCount increment
 
+### ✅ Phase 2.5: Security Hardening (Complete — 2026-06-19)
+- **XSS Protection:** `sanitize.ts` — all comment/guestbook user input stripped of HTML before DB insert via `xss` library
+- **DoS Prevention:** `bodyLimit: 512KB` in Fastify; `maxLength` constraints on `comment.content` (10K) and `password` (128)
+- **Admin Auth Fix:** `adminGuard` added to `DELETE /api/admin/comments/:id` (was missing — any auth'd user could delete)
+- **Brute-Force Protection:** `login-guard.ts` — progressive lockout after 5 (15min) / 10 (1h) failed attempts
+- **Token Revocation:** `tokenVersion` field in User model, included in JWT payload, verified on refresh
+- **Production Safety:** `validateSecrets()` throws at startup in production if JWT secrets are not set
+- **Email Normalization:** login email `toLowerCase().trim()` before DB lookup
+
 ### ⏳ Phase 3: Frontend Core (In Progress)
 - [x] Scaffold: Vite + React + Tailwind + Router + TanStack Query + types
 - [x] API integration layer: api.ts (fetch + 401 queue), auth.ts (token storage)
@@ -313,10 +344,17 @@ my_Blog/
 ## Security Checklist (before any commit)
 - [ ] No hardcoded secrets (API keys, passwords, tokens)
 - [ ] All user input validated (JSON Schema on all routes)
+- [ ] All user input sanitized via `sanitizeContent()` before DB insert
+- [ ] bodyLimit enforced (512KB) to prevent DoS
+- [ ] Schema maxLength constraints on all user-input fields
 - [ ] JWT verified on every protected route
+- [ ] `adminGuard` applied alongside `authGuard` on all admin-only routes
+- [ ] tokenVersion verified on refresh to enable token revocation
 - [ ] bcrypt cost factor 12 for password hashing
 - [ ] Helmet + CORS + rate limiting active
 - [ ] No public login link anywhere in navbar
 - [ ] Error messages do not leak sensitive data
 - [ ] SQL injection prevention (Prisma parameterized queries)
 - [ ] No `console.log` in production code
+- [ ] JWT secrets set in production (validated at startup by `validateSecrets`)
+- [ ] Progressive login lockout active (5 fails→15min, 10 fails→1h)

@@ -564,6 +564,35 @@ my_Blog/
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (498KB JS, 35KB CSS)
 
+### ✅ Phase 4.3: 导航栏拟态玻璃 & 图标导航 (2026-06-19)
+
+**目标:** 导航栏在 hero 顶部透明融入，滚动后切换为拟态玻璃；导航项添加 Lucide 图标。
+
+**根因分析:**
+- `sticky top-0` 在 scrollY=0 时处于正常文档流，位于 hero 上方而非重叠
+- `bg-transparent` 透出父元素 `bg-zinc-50` 而非 hero 视频
+- 文字色始终深色，暗色 hero 上无法辨认
+
+**修复:**
+
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| [Layout.tsx](frontend/src/components/Layout.tsx) | `sticky` → `fixed top-0 left-0 w-full` | 脱离文档流，浮动在 hero 上方 |
+| | 动态文字颜色 | 未滚动 `text-white`，滚动后 `text-zinc-950` |
+| | 双态玻璃样式 | 透明态：`bg-transparent backdrop-blur-sm` + 2-4px 渐变暗边缘；滚动态：`bg-white/70 backdrop-blur-xl` + 拟态阴影 + 内发光 |
+| | `<main>` 加 `pt-14` | 补偿 fixed 导航栏高度 |
+| | 导航项加 Lucide 图标 | `Home`/`Tag`/`MessageSquareText`/`Search`/`User`，`flex items-center gap-1.5` |
+| [Home.tsx](frontend/src/pages/Home.tsx) | hero section 加 `-mt-14` | 抵消 main padding，视频从视口顶端开始 |
+| [AdminLayout.tsx](frontend/src/components/AdminLayout.tsx) | `flex-shrink-0` → `shrink-0` | Tailwind v4 规范类名 |
+
+**导航栏双态:**
+| 状态 | 背景 | 阴影 | 文字 |
+|------|------|------|------|
+| 顶部 (scrollY=0) | `bg-transparent` + `backdrop-blur-sm` | `shadow-[0_1px_2px_rgba(0,0,0,0.12),0_2px_4px_rgba(0,0,0,0.06)]` | `text-white` |
+| 滚动后 | `bg-white/70` + `backdrop-blur-xl` | `shadow-[0_4px_16px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]` | `text-zinc-950` |
+
+**验证:** tsc ✓ · ESLint 0 ✓
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

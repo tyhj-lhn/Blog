@@ -80,7 +80,7 @@ export default function AdminLayout() {
         {/* User info + Logout */}
         <div className="px-3 py-4 border-t border-zinc-800">
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
               <User size={14} className="text-zinc-400" />
             </div>
             <div className="min-w-0 flex-1">

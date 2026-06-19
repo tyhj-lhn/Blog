@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero — full-bleed video background, fills viewport */}
-      <section className="relative flex flex-col min-h-screen text-center overflow-hidden">
+      <section className="relative flex flex-col min-h-screen text-center overflow-hidden -mt-14">
         {/* Background video — use API wallpaper or default */}
         {wallpaper ? (
           wallpaper.type === 'video' ? (
@@ -102,7 +102,7 @@ export default function Home() {
         <button
           type="button"
           onClick={() => scrollToPosts(postsRef)}
-          className="relative z-10 flex flex-col items-center gap-2 text-white/50 hover:text-white/80 transition-colors cursor-pointer pb-8 pointer-events-auto"
+          className="relative z-10 flex flex-col items-center gap-2 text-white/50 hover:text-white/80 transition-colors cursor-pointer pb-1.2 pointer-events-auto"
           aria-label="Scroll to posts"
         >
           <span className="text-sm tracking-wider uppercase drop-shadow">Scroll</span>

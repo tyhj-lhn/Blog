@@ -64,6 +64,7 @@ my_Blog/
 │           ├── tags.routes.ts      # GET all tags with counts ← unnest(tags)
 │           ├── guestbook.routes.ts # GET list, POST create, DELETE admin
 │           ├── wallpaper.routes.ts # GET public wallpaper, GET/PUT admin wallpaper
+│           ├── upload.routes.ts    # POST /api/admin/upload — JWT-guarded image upload
 │           └── admin.routes.ts     # GET stats (counts + recent posts/comments)
 ├── frontend/
 │   ├── package.json
@@ -77,7 +78,7 @@ my_Blog/
 │       ├── App.tsx                  # Router + QueryClient + AuthProvider
 │       ├── index.css               # Google Fonts (Caveat+Quicksand) + Tailwind v4 @theme
 │       ├── lib/
-│       │   ├── api.ts              # Fetch wrapper: JWT inject, 401 refresh queue, api.get/post/put/del
+│       │   ├── api.ts              # Fetch wrapper: JWT inject, 401 refresh queue, api.get/post/put/del/upload
 │       │   └── auth.ts             # localStorage token CRUD
 │       ├── types/
 │       │   └── index.ts            # All shared TS interfaces (Post, Comment, Wallpaper, etc.)
@@ -91,6 +92,9 @@ my_Blog/
 │       │   ├── AdminLayout.tsx     # 深色侧边栏 + 内容区管理后台布局
 │       │   ├── ConfirmDialog.tsx   # 可复用删除确认模态框
 │       │   ├── TagInput.tsx        # 芯片化标签输入组件
+│       │   ├── CoverImageUpload.tsx # 拖拽图片上传组件 (替换URL输入)
+│       │   ├── MarkdownToolbar.tsx # 12按钮Markdown格式工具栏
+│       │   ├── PostPreview.tsx     # 发布预览 (模拟PostDetail外观)
 │       │   └── ...                 # PostCard, CommentTree, CommentForm, etc.
 │       └── pages/
 │           ├── Home.tsx            # Hero (video + API wallpaper) + post grid
@@ -103,6 +107,7 @@ my_Blog/
 │               ├── AdminLogin.tsx        # Centred login (independent layout)
 │               ├── AdminDashboard.tsx    # Stats + quick actions + management links
 │               ├── PostEditor.tsx        # Markdown split-pane editor + auto-save
+│               ├── PostManagement.tsx    # Browse/search all posts, inline delete
 │               ├── CommentManagement.tsx # Comment list, search, pagination, delete
 │               ├── GuestbookManagement.tsx # Guestbook list, pagination, delete
 │               └── WallpaperAdmin.tsx    # Wallpaper type/URL + live preview
@@ -192,6 +197,7 @@ my_Blog/
 | `/admin/login` | AdminLogin | Public (login form) |
 | `/admin` | → redirect /admin/dashboard | Auth required |
 | `/admin/dashboard` | AdminDashboard | Auth required |
+| `/admin/posts` | PostManagement | Auth required |
 | `/admin/posts/new` | PostEditor | Auth required |
 | `/admin/posts/:id/edit` | PostEditor | Auth required |
 | `/admin/comments` | CommentManagement | Auth required |
@@ -308,6 +314,8 @@ my_Blog/
 ### Protected (JWT required — authGuard middleware)
 | Method | Path | Description |
 |--------|------|-------------|
+| POST | `/api/admin/upload` | Upload image (JPG/PNG ≤5MB). Returns `{url}` |
+| GET | `/api/admin/posts` | Paginated post list (all statuses). Query: `?page=&limit=&search=&status=` |
 | POST | `/api/admin/posts` | Create post |
 | PUT | `/api/admin/posts/:id` | Update post (regenerates slug if title changes) |
 | DELETE | `/api/admin/posts/:id` | Delete post (204) |
@@ -592,6 +600,58 @@ my_Blog/
 | 滚动后 | `bg-white/70` + `backdrop-blur-xl` | `shadow-[0_4px_16px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]` | `text-zinc-950` |
 
 **验证:** tsc ✓ · ESLint 0 ✓
+
+### ✅ Phase 4.4: 文章编辑器重构 — 本地上传、Markdown工具栏、文档导入、预览 (2026-06-19)
+
+**目标:** 移除封面图片URL输入，仅保留本地上传；添加拖拽上传；Markdown格式工具栏；文档导入；预览需模拟发布后外观。
+
+**后端新增:**
+| 变更 | 详情 |
+|------|------|
+| `upload.routes.ts` | `POST /api/admin/upload` — JWT保护的图片上传，UUID文件名 |
+| `@fastify/multipart` | 文件上传支持，限制5MB |
+| `@fastify/static` | 挂载 `/uploads/` 提供上传文件访问 |
+| `index.ts` | 注册multipart/static插件 + upload路由 |
+| `posts.routes.ts` | 新增 `GET /api/admin/posts` — 分页列表（搜索+状态过滤） |
+| `vite.config.ts` | 代理 `/uploads` → 后端3001端口 |
+
+**前端新组件:**
+| 组件 | 用途 |
+|------|------|
+| `CoverImageUpload.tsx` | 自包含拖拽/点击上传区域 — 空态（虚线区域+ImagePlus图标）、悬停态（蓝色高亮）、上传中（spinner）、已加载（预览+悬停覆盖层"更换"/"移除"按钮） |
+| `MarkdownToolbar.tsx` | 12按钮格式工具栏 — 粗体/斜体/标题/删除线/链接/图片/行内代码/代码块/引用/无序列表/有序列表/分割线。Props: `{ onAction: (action: MarkdownAction) => void }` |
+| `PostPreview.tsx` | 模拟PostDetail发布外观 — Caveat标题（"无标题"占位）→ 元数据行（日期+标签）→ 封面图 → 分割线 → `react-markdown` 渲染内容 |
+
+**PostEditor 重构:**
+| 变更 | 详情 |
+|------|------|
+| 移除封面URL输入 | 删除 `coverImage` URL文本框 + 内联 `<img>` 预览 |
+| 替换为 CoverImageUpload | `<CoverImageUpload value={coverImage} onChange={setCoverImage} />` |
+| 文档导入 | 隐藏 `<input type="file" accept=".md,.txt,.markdown">` + FileUp按钮 → FileReader.readAsText() → setContent() |
+| 格式工具栏集成 | `<MarkdownToolbar onAction={handleMarkdownAction} />` 位于textarea上方 |
+| handleMarkdownAction | `useCallback` 依赖 content — 读取textarea选择范围，包裹/插入Markdown语法，通过 setTimeout(0) 恢复焦点+光标 |
+| 预览替换 | 内联prose预览 → `<PostPreview title={title} content={content} coverImage={coverImage} tags={tags} />` |
+| 字数统计 | 实时 `{content.length} 字` 计数器 |
+| textarea ref | `contentTextareaRef` 用于工具栏光标操作 |
+
+**PostDetail 修复:**
+| 变更 | 详情 |
+|------|------|
+| Markdown渲染 | `{post.content}` → `<ReactMarkdown remarkPlugins={[remarkGfm]}>` |
+| 移除类名 | `whitespace-pre-wrap` 已移除（prose自行处理空格） |
+
+**其他前端变更:**
+| 文件 | 变更 |
+|------|------|
+| `api.ts` | 新增 `api.upload<T>(url, FormData)` — 401刷新队列复用，无Content-Type（浏览器自动设置multipart boundary） |
+| `PostManagement.tsx` | 新增管理页 — 所有文章分页列表，搜索+状态过滤，内联删除 |
+| `AdminLayout.tsx` | 修复 `/admin/posts` 导航active状态逻辑（排除 `/admin/posts/new`） |
+| `App.tsx` | 新增 `/admin/posts` 路由 |
+| `ConfirmDialog.tsx` | `flex-shrink-0` → `shrink-0` (Tailwind v4规范) |
+
+**文件统计:** 19文件，+1147行，-50行
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (515KB JS, 39KB CSS)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import type { SignOptions } from 'jsonwebtoken';
 
 interface TokenPayload {
   id: number;
@@ -15,13 +16,13 @@ function refreshSecret(): string {
 
 export function generateAccessToken(user: TokenPayload): string {
   return jwt.sign({ id: user.id, role: user.role }, accessSecret(), {
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as SignOptions['expiresIn'],
   });
 }
 
 export function generateRefreshToken(userId: number): string {
   return jwt.sign({ id: userId }, refreshSecret(), {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
   });
 }
 

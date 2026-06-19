@@ -37,24 +37,25 @@ export function buildApp() {
   fastify.register(adminRoutes, { prefix: '/api' });
 
   // ---- Error handler ----
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error: unknown, request, reply) => {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({
         error: { code: error.code, message: error.message },
       });
     }
 
-    if (error.validation) {
+    const err = error as { validation?: unknown; message?: string };
+    if (err.validation) {
       return reply.status(400).send({
         error: {
           code: 'VALIDATION_ERROR',
-          message: error.message,
-          details: error.validation,
+          message: err.message ?? 'Validation failed',
+          details: err.validation,
         },
       });
     }
 
-    request.log.error(error);
+    request.log.error(error instanceof Error ? error : String(error));
     return reply.status(500).send({
       error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
     });

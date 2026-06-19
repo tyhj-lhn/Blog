@@ -2,10 +2,16 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import { AppError } from './lib/errors.js';
 import prisma from './lib/prisma.js';
 import { rateLimitPresets } from './middleware/rate-limit.js';
 import { validateSecrets } from './lib/jwt.js';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import authRoutes from './routes/auth.routes.js';
 import guestbookRoutes from './routes/guestbook.routes.js';
@@ -14,6 +20,7 @@ import commentsRoutes from './routes/comments.routes.js';
 import tagsRoutes from './routes/tags.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import wallpaperRoutes from './routes/wallpaper.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
 
 export function buildApp() {
   const fastify = Fastify({
@@ -34,8 +41,18 @@ export function buildApp() {
 
   fastify.register(rateLimit, rateLimitPresets.global);
 
+  // File upload
+  fastify.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
+
+  // Serve uploaded files
+  fastify.register(fastifyStatic, {
+    root: join(__dirname, '..', 'uploads'),
+    prefix: '/uploads/',
+  });
+
   // ---- Routes ----
   fastify.register(authRoutes, { prefix: '/api/auth' });
+  fastify.register(uploadRoutes, { prefix: '/api' });
   fastify.register(guestbookRoutes, { prefix: '/api' });
   fastify.register(postsRoutes, { prefix: '/api' });
   fastify.register(commentsRoutes, { prefix: '/api' });

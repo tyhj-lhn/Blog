@@ -16,6 +16,7 @@ import SearchPage from './pages/SearchPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PostEditor from './pages/admin/PostEditor';
+import PostManagement from './pages/admin/PostManagement';
 import CommentManagement from './pages/admin/CommentManagement';
 import GuestbookManagement from './pages/admin/GuestbookManagement';
 import WallpaperAdmin from './pages/admin/WallpaperAdmin';
@@ -51,6 +52,7 @@ function AppRoutes() {
         }
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/posts" element={<PostManagement />} />
         <Route path="/admin/posts/new" element={<PostEditor />} />
         <Route path="/admin/posts/:id/edit" element={<PostEditor />} />
         <Route path="/admin/comments" element={<CommentManagement />} />

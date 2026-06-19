@@ -47,8 +47,14 @@ export default function AdminLayout() {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
-            const isActive = location.pathname === to
-              || (to !== '/admin/posts/new' && to !== '/admin/dashboard' && location.pathname.startsWith(to));
+            const isActive = (() => {
+              if (location.pathname === to) return true;
+              // /admin/posts — active for list + /admin/posts/:id/edit, but NOT /admin/posts/new
+              if (to === '/admin/posts') {
+                return location.pathname.startsWith('/admin/posts/') && location.pathname !== '/admin/posts/new';
+              }
+              return false;
+            })();
             return (
               <Link
                 key={to}

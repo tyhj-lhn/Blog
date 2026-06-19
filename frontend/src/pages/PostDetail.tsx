@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { api } from '../lib/api';
 import type { Post, Comment } from '../types';
 import CommentTree from '../components/CommentTree';
@@ -154,8 +156,10 @@ export default function PostDetail() {
       </header>
 
       {/* Post content */}
-      <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800 whitespace-pre-wrap">
-        {post.content}
+      <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {post.content}
+        </ReactMarkdown>
       </div>
 
       {/* Divider */}

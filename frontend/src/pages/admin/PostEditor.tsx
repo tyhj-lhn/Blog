@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Save, ArrowLeft, Trash2, AlertTriangle, FileUp } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { Post } from '../../types';
+import type { MarkdownAction } from '../../components/MarkdownToolbar';
+import MarkdownToolbar from '../../components/MarkdownToolbar';
+import CoverImageUpload from '../../components/CoverImageUpload';
+import PostPreview from '../../components/PostPreview';
 import TagInput from '../../components/TagInput';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useAutoSave } from '../../hooks/useAutoSave';
@@ -20,6 +22,8 @@ export default function PostEditor() {
   const [content, setContent] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<'DRAFT' | 'PUBLISHED'>('DRAFT');
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +138,70 @@ export default function PostEditor() {
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
+  const handleMarkdownAction = useCallback(
+    (action: MarkdownAction) => {
+      const textarea = contentTextareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = content.substring(start, end);
+      const hasSelection = start !== end;
+
+      let newText: string;
+      let cursorPos: number;
+
+      if (hasSelection) {
+        newText =
+          content.substring(0, start) +
+          action.before +
+          selectedText +
+          action.after +
+          content.substring(end);
+        cursorPos = start + action.before.length + selectedText.length + action.after.length;
+      } else {
+        const insertText = action.before + action.placeholder + action.after;
+        newText = content.substring(0, start) + insertText + content.substring(end);
+        cursorPos = start + action.before.length + action.placeholder.length + action.after.length;
+      }
+
+      setContent(newText);
+
+      // Restore focus and cursor after React re-render
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(cursorPos, cursorPos);
+      }, 0);
+    },
+    [content],
+  );
+
+  const handleDocUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !['md', 'txt', 'markdown'].includes(ext)) {
+      setError('仅支持 .md 和 .txt 文件');
+      if (docFileInputRef.current) docFileInputRef.current.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === 'string') {
+        setContent(text);
+      }
+    };
+    reader.onerror = () => {
+      setError('文件读取失败');
+    };
+    reader.readAsText(file);
+
+    if (docFileInputRef.current) docFileInputRef.current.value = '';
+  }, []);
+
   return (
     <div className="p-6">
       {/* Top bar */}
@@ -234,30 +302,7 @@ export default function PostEditor() {
               />
             </div>
 
-            <div>
-              <label htmlFor="coverImage" className="block text-sm text-zinc-600 mb-1">
-                封面图片 URL <span className="text-zinc-400">(可选)</span>
-              </label>
-              <input
-                id="coverImage"
-                type="url"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                maxLength={500}
-                className="w-full min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
-              />
-              {coverImage && (
-                <img
-                  src={coverImage}
-                  alt="封面预览"
-                  className="mt-2 max-h-32 rounded-lg object-cover border border-zinc-200"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              )}
-            </div>
+            <CoverImageUpload value={coverImage} onChange={setCoverImage} />
 
             <div>
               <label className="block text-sm text-zinc-600 mb-1">标签</label>
@@ -291,38 +336,55 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Right column — Markdown preview */}
+          {/* Right column — editor + preview */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor="content" className="block text-sm text-zinc-600">
-                内容 <span className="text-zinc-400">(Markdown)</span>
-              </label>
+              <div className="flex items-center gap-3">
+                <label htmlFor="content" className="block text-sm text-zinc-600">
+                  内容 <span className="text-zinc-400">(Markdown)</span>
+                </label>
+                {/* Document upload */}
+                <input
+                  ref={docFileInputRef}
+                  type="file"
+                  accept=".md,.txt,.markdown"
+                  className="hidden"
+                  onChange={handleDocUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => docFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-blue-600 transition-colors cursor-pointer"
+                  title="导入 .md 或 .txt 文件"
+                >
+                  <FileUp size={13} />
+                  导入文档
+                </button>
+              </div>
               <span className="text-xs text-zinc-400">
                 {content.length} 字
               </span>
             </div>
+
+            <MarkdownToolbar onAction={handleMarkdownAction} />
+
             <textarea
               id="content"
+              ref={contentTextareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="写点什么..."
               required
               rows={18}
-              className="w-full min-h-11 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+              className="w-full min-h-11 px-3 py-2 rounded-t-none rounded-b-lg border border-zinc-200 border-t-0 bg-white text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
             />
 
-            <div className="mt-4">
-              <h3 className="text-sm text-zinc-600 mb-2 font-medium">预览</h3>
-              <div className="border border-zinc-200 rounded-lg p-4 bg-white min-h-75 prose prose-sm prose-zinc max-w-none overflow-y-auto">
-                {content ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {content}
-                  </ReactMarkdown>
-                ) : (
-                  <p className="text-zinc-400 text-sm">预览区——在左侧输入 Markdown 内容</p>
-                )}
-              </div>
-            </div>
+            <PostPreview
+              title={title}
+              content={content}
+              coverImage={coverImage || undefined}
+              tags={tags}
+            />
           </div>
         </div>
       </form>

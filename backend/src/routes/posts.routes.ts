@@ -130,6 +130,40 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return { data, total: data.length, page: 1, totalPages: 1 };
   });
 
+  // GET /api/admin/posts — list all posts (protected, paginated, optional search/status)
+  fastify.get('/admin/posts', {
+    preHandler: [authGuard],
+    schema: { querystring: paginationSchema },
+  }, async (request) => {
+    const q = request.query as { page?: number; limit?: number; search?: string; status?: string };
+    const page = q.page ?? 1;
+    const limit = q.limit ?? 20;
+
+    const where: Record<string, unknown> = {};
+    if (q.status === 'PUBLISHED' || q.status === 'DRAFT') {
+      where.status = q.status;
+    }
+    if (q.search) {
+      where.OR = [
+        { title: { contains: q.search, mode: 'insensitive' as const } },
+        { content: { contains: q.search, mode: 'insensitive' as const } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        select: summarySelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
+  });
+
   // GET /api/admin/posts/:id — single post by ID (protected, any status)
   fastify.get('/admin/posts/:id', {
     preHandler: [authGuard],

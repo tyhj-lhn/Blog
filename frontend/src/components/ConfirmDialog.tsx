@@ -50,7 +50,7 @@ export default function ConfirmDialog({
       <div className="bg-white rounded-xl border border-zinc-200 shadow-lg p-6 max-w-sm w-full mx-4">
         <div className="flex items-start gap-3 mb-4">
           {variant === 'danger' && (
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
               <AlertTriangle size={20} className="text-red-600" />
             </div>
           )}

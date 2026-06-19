@@ -65,6 +65,42 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function uploadRequest<T>(url: string, formData: FormData): Promise<T> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  // Don't set Content-Type — browser will set multipart/form-data boundary
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let res = await fetch(`${BASE_URL}${url}`, { method: 'POST', headers, body: formData });
+
+  // Handle 401 — try refresh once
+  if (res.status === 401 && getRefreshToken()) {
+    if (!refreshPromise) {
+      refreshPromise = tryRefresh().finally(() => { refreshPromise = null; });
+    }
+
+    try {
+      await refreshPromise;
+      const newToken = getAccessToken();
+      headers['Authorization'] = `Bearer ${newToken}`;
+      res = await fetch(`${BASE_URL}${url}`, { method: 'POST', headers, body: formData });
+    } catch {
+      clearTokens();
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.error?.message || res.statusText;
+    throw new Error(msg);
+  }
+
+  return res.json();
+}
+
 export const api = {
   get<T>(url: string, params?: Record<string, string | number>): Promise<T> {
     const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
@@ -87,5 +123,9 @@ export const api = {
 
   del(url: string): Promise<void> {
     return request<void>(url, { method: 'DELETE' });
+  },
+
+  upload<T>(url: string, formData: FormData): Promise<T> {
+    return uploadRequest<T>(url, formData);
   },
 };

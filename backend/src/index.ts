@@ -116,11 +116,11 @@ export function buildApp() {
 
 const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js');
 if (isMain) {
-  const app = buildApp();
   try {
+    const app = buildApp();
     await app.listen({ port: Number(process.env.PORT) || 3001, host: process.env.HOST || '0.0.0.0' });
   } catch (err) {
-    app.log.error(err);
+    console.error('FATAL: Failed to start server:', err instanceof Error ? err.message : err);
     process.exit(1);
   }
 }

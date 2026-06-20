@@ -1044,6 +1044,44 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 
 **验证:** tsc ✓ · ESLint 0 ✓
 
+### ✅ Phase 4.13: 启动崩溃循环修复 — try/catch 作用域 (2026-06-20)
+
+**Bug:** 服务器 `pm2 list` 显示运行但 `curl localhost:3001` 连接失败，PM2 重启次数高达 481 次。
+
+**根因分析:**
+
+| 问题 | 说明 |
+|------|------|
+| `buildApp()` 在 try 外面 | [index.ts:119](backend/src/index.ts#L119) `const app = buildApp()` 在 `try/catch` 之前，构造函数体内 `validateSecrets()` 在 production 模式下检测到弱密钥直接 `throw Error` |
+| 未捕获异常 | 异常未被 catch → Node.js 进程崩溃 → PM2 重启 → 又崩溃 → 无限循环 |
+| 异常处理引用了 `app` | `catch` 块内 `app.log.error(err)` — 但 `app` 对象尚未创建，二次崩溃 |
+| JWT secrets 是占位符 | `.env` 中 `change-me-to-a-random-64-char-string` 匹配弱密钥正则 `/^change-me/i` |
+
+**修复:**
+
+| 文件 | 变更 |
+|------|------|
+| [index.ts:118-126](backend/src/index.ts#L118-L126) | `buildApp()` + `listen()` 整体包裹在 `try` 块内；`catch` 改用 `console.error`（`app` 可能不存在） |
+
+```typescript
+// Before — buildApp() outside try
+const app = buildApp();
+try { await app.listen(...); } catch (err) { app.log.error(err); }
+
+// After — buildApp() inside try
+try {
+  const app = buildApp();
+  await app.listen(...);
+} catch (err) {
+  console.error('FATAL: Failed to start server:', ...);
+  process.exit(1);
+}
+```
+
+**服务器端必须做的:** 替换 JWT secrets 为强随机值（`openssl rand -base64 64`），否则服务仍会正常退出（只是不再无限重启）。
+
+**验证:** tsc ✓
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)
@@ -1073,3 +1111,29 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 - [ ] No `console.log` in production code
 - [ ] JWT secrets set in production (validated at startup by `validateSecrets`)
 - [ ] Progressive login lockout active (5 fails→15min, 10 fails→1h)
+
+## PM2 Services
+
+| Port | Name | Type |
+|------|------|------|
+| 3001 | memorystory-backend | Fastify (Node.js) |
+
+**Config:** `ecosystem.config.cjs` (project root) — production mode, strong JWT secrets, auto-restart (max 10), 300MB memory limit.
+
+**Terminal Commands:**
+```bash
+pm2 start ecosystem.config.cjs   # First time
+pm2 start all                    # After first time
+pm2 stop all / pm2 restart all
+pm2 start memorystory-backend / pm2 stop memorystory-backend
+pm2 logs / pm2 status / pm2 monit
+pm2 save                         # Save process list
+pm2 resurrect                    # Restore saved list
+```
+
+**Cloud Deployment Notes:**
+- `ecosystem.config.cjs` passes ALL env vars (DB, JWT, CORS) explicitly — no `.env` file dependency
+- JWT secrets must be cryptographically strong (use `openssl rand -base64 64`) or `validateSecrets()` throws in production
+- `NODE_ENV=production` triggers strict secret validation, `logger.level='warn'`
+- Backend log files: `backend/logs/backend-out.log`, `backend/logs/backend-error.log`
+- Graceful shutdown: `kill_timeout: 5000`, waits 10s for ready signal (`listen_timeout`)

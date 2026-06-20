@@ -9,16 +9,22 @@
 ## 目录
 
 - [1. 项目概览](#1-项目概览)
-- [2. 目录结构](#2-目录结构)
-- [3. 数据库结构](#3-数据库结构)
-- [4. 云端部署指南](#4-云端部署指南)
-  - [4.1 服务器选型与环境准备](#41-服务器选型与环境准备)
-  - [4.2 后端部署](#42-后端部署)
-  - [4.3 前端部署](#43-前端部署)
-  - [4.4 Nginx 反向代理](#44-nginx-反向代理)
-  - [4.5 HTTPS / SSL 证书](#45-https--ssl-证书)
-  - [4.6 日常运维命令](#46-日常运维命令)
-- [5. 安全清单](#5-安全清单)
+- [2. 技术架构](#2-技术架构)
+  - [2.1 整体架构](#21-整体架构)
+  - [2.2 后端架构](#22-后端架构)
+  - [2.3 前端架构](#23-前端架构)
+  - [2.4 认证流程](#24-认证流程)
+  - [2.5 关键设计决策](#25-关键设计决策)
+- [3. 目录结构](#3-目录结构)
+- [4. 数据库结构](#4-数据库结构)
+- [5. 云端部署指南](#5-云端部署指南)
+  - [5.1 服务器选型与环境准备](#51-服务器选型与环境准备)
+  - [5.2 后端部署](#52-后端部署)
+  - [5.3 前端部署](#53-前端部署)
+  - [5.4 Nginx 反向代理](#54-nginx-反向代理)
+  - [5.5 HTTPS / SSL 证书](#55-https--ssl-证书)
+  - [5.6 日常运维命令](#56-日常运维命令)
+- [6. 安全清单](#6-安全清单)
 
 ---
 
@@ -37,7 +43,270 @@
 
 ---
 
-## 2. 目录结构
+## 2. 技术架构
+
+### 2.1 整体架构
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                      客户端 (Browser)                      │
+│  React 19 SPA  ──────── Vite 8 构建 ──────── Tailwind 4  │
+└─────────────┬────────────────────────────┬───────────────┘
+              │ HTTPS                      │ HTTPS
+              ▼                            ▼
+┌─────────────────────────┐  ┌─────────────────────────────┐
+│   Nginx (反向代理)        │  │  Nginx (静态文件服务)         │
+│   /api/* → :3001         │  │  /uploads/* → 本地目录       │
+│   /uploads/* → 本地目录   │  │  /* → SPA index.html        │
+└─────────────┬───────────┘  └─────────────────────────────┘
+              │ HTTP (内网)
+              ▼
+┌──────────────────────────────────────────────────────────┐
+│              Fastify 5.3 (Node.js 22)                     │
+│                                                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ │
+│  │ 路由层    │ │ Schema   │ │ 中间件    │ │ 工具库       │ │
+│  │ routes/  │ │ schemas/ │ │middleware│ │ lib/         │ │
+│  └──────────┘ └──────────┘ └──────────┘ └─────────────┘ │
+│                          │                               │
+│                    Prisma 6.6 ORM                         │
+└──────────────────────────┬───────────────────────────────┘
+                           │ TCP :5432
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│                  PostgreSQL 17                            │
+│  users │ posts │ comments │ guestbook │ wallpaper │ about │
+└──────────────────────────────────────────────────────────┘
+```
+
+**架构模式：** 前后端分离 + SPA 单页应用。后端为纯 REST API（JSON），前端为 Vite 构建的纯静态文件，通过 Nginx 统一对外服务。开发阶段 Vite Dev Server 通过内置代理将 `/api` 和 `/uploads` 转发到后端。
+
+---
+
+### 2.2 后端架构
+
+#### 运行时与框架
+
+| 组件 | 选型 | 说明 |
+|------|------|------|
+| **运行时** | Node.js 22 LTS | 稳定长期支持版本 |
+| **HTTP 框架** | Fastify 5.3 | 高性能、低开销、插件化、TypeScript-first |
+| **ORM** | Prisma 6.6 | 类型安全的数据库客户端，自动生成迁移 |
+| **语言** | TypeScript 5.7 | 编译为 ES2022，模块系统 ESNext |
+
+#### Fastify 插件链
+
+```
+请求 → Helmet (安全头) → CORS → Rate Limit → body 解析 → multipart 解析
+     → static 文件服务 → authGuard (JWT 验证) → 路由处理 → 错误处理 → 响应
+```
+
+| 插件 | 用途 | 配置 |
+|------|------|------|
+| `@fastify/helmet` | 安全 HTTP 头（CSP、HSTS 等） | 默认 |
+| `@fastify/cors` | 跨域控制 | `origin` 白名单 |
+| `@fastify/rate-limit` | 速率限制 | 全局 100/min、登录 5/min、留言 3/min |
+| `@fastify/multipart` | 文件上传解析 | 上限 50MB |
+| `@fastify/static` | 上传文件对外服务 | 挂载 `/uploads/` |
+
+#### 应用工厂模式
+
+```typescript
+// src/index.ts — 核心架构模式
+export async function buildApp() {
+  const fastify = Fastify({ logger: true, bodyLimit: 512 * 1024 })
+  // 注册插件 → 注册路由 → 注册错误处理器
+  return fastify
+}
+
+// 仅直接运行时启动监听（测试时通过 app.inject() 不监听端口）
+if (import.meta.url.endsWith('index.ts') || import.meta.url.endsWith('index.js')) {
+  const app = await buildApp()
+  await app.listen({ port: 3001, host: '0.0.0.0' })
+}
+```
+
+**好处：** `buildApp()` 分离构建与启动，单元测试可直接 `app.inject()` 模拟 HTTP 请求而无需真实端口监听。
+
+#### 路由分层
+
+| 层级 | 文件 | 职责 |
+|------|------|------|
+| **Schema** | `src/schemas/*.ts` | Fastify JSON Schema 校验定义（输入约束） |
+| **Middleware** | `src/middleware/*.ts` | authGuard、adminGuard、rate-limit 预设 |
+| **Lib** | `src/lib/*.ts` | 业务工具函数（无副作用，可测试） |
+| **Routes** | `src/routes/*.ts` | 请求处理 + Prisma 调用 + 响应组装 |
+
+#### 错误处理
+
+- `AppError` 自定义错误类：`{ statusCode, code, message }`
+- Fastify `setErrorHandler`：AppError → 结构化 JSON；validation error → 400 + 字段详情；未知错误 → 500 通用响应（生产环境不泄露详情）
+- 工厂函数：`notFound()`、`unauthorized()`、`forbidden()`、`validationError()`、`conflict()`
+
+#### 输入校验与安全
+
+```
+请求进入 → Fastify JSON Schema 校验 (类型+长度)
+        → sanitizeContent() XSS 过滤 (xss 库, 空白名单 — 剥离所有 HTML)
+        → Prisma 参数化查询 (防 SQL 注入)
+        → 结构化 JSON 响应
+```
+
+---
+
+### 2.3 前端架构
+
+#### 运行时与框架
+
+| 组件 | 选型 | 说明 |
+|------|------|------|
+| **UI 框架** | React 19.2 | 函数组件 + Hooks |
+| **构建工具** | Vite 8.0 | 快速 HMR + 生产构建 (Rollup) |
+| **CSS** | Tailwind CSS 4.3 | 原子化 CSS + `@theme` 自定义设计 Token |
+| **语言** | TypeScript 6.0 | 严格模式 + `verbatimModuleSyntax` |
+| **路由** | react-router-dom 7.18 | SPA 客户端路由 |
+| **数据请求** | TanStack Query 5 (React Query) | 服务端状态管理、缓存、乐观更新 |
+| **Markdown** | react-markdown + remark-gfm + remark-breaks | 文章正文渲染 |
+
+#### 组件分层
+
+```
+App.tsx (路由表 + QueryClient + AuthProvider + ErrorBoundary)
+├── Layout.tsx (前台外壳: 导航栏 + <Outlet/>)
+│   ├── Home.tsx, PostDetail.tsx, TagsPage.tsx, ...
+│   └── Footer.tsx
+├── AdminLayout.tsx (后台外壳: 深色侧边栏 + <Outlet/>)
+│   └── *Management.tsx, *Editor.tsx, ...
+└── AdminLogin.tsx (独立全屏登录, 无 layout 嵌套)
+```
+
+**设计原则：**
+- 页面组件 (`pages/`) 只负责布局组装和数据获取
+- 展示组件 (`components/`) 只负责渲染，通过 props 接收数据
+- 自定义 Hooks (`hooks/`) 封装可复用逻辑（认证、点赞、自动保存、防抖）
+
+#### 状态管理策略
+
+| 状态类型 | 方案 | 存储位置 |
+|----------|------|----------|
+| 服务端数据 | TanStack Query (缓存+自动重取) | 内存缓存 |
+| 认证状态 | React Context (AuthProvider) | Context + localStorage |
+| 表单草稿 | useAutoSave hook | localStorage |
+| 点赞记录 | useLike hook | localStorage + 乐观 UI |
+| URL 参数 | react-router-dom useSearchParams | URL query string |
+
+> **无全局状态库（Redux/MobX/Zustand）：** 项目的状态复杂度不需要额外状态管理库。服务端数据用 React Query 缓存，认证用 Context，UI 临时状态用组件内 useState。
+
+#### 路由守卫
+
+```
+用户访问 /admin/*
+  → ProtectedRoute 检查 token
+    → 有 token: 渲染子路由
+    → 无 token: <Navigate to="/admin/login?returnUrl=..." />
+```
+
+#### 设计系统
+
+| Token | 值 | 说明 |
+|-------|-----|------|
+| `--font-heading` | `'Noto Serif SC', serif` | 标题字体 — 思源宋体 |
+| `--font-body` | `'Quicksand', sans-serif` | 正文字体 — 温暖圆体 |
+| `--color-primary` | `#18181B` (zinc-900) | 主色 |
+| `--color-accent` | `#2563EB` (blue-600) | 强调色（链接、交互） |
+| `--color-bg` | `#FAFAFA` (zinc-50) | 背景色 |
+| 最小触摸目标 | 44px (`min-h-11`) | 无障碍标准 |
+| 过渡动画 | 150–300ms | `prefers-reduced-motion` 尊重 |
+
+---
+
+### 2.4 认证流程
+
+```
+┌──────────┐                    ┌──────────┐                    ┌──────────┐
+│  前端     │                    │  后端     │                    │  数据库   │
+│ (Browser)│                    │ (Fastify) │                    │ (PG)     │
+└────┬─────┘                    └────┬─────┘                    └────┬─────┘
+     │                               │                               │
+     │  POST /api/auth/login         │                               │
+     │  { email, password }          │                               │
+     │ ────────────────────────────▶ │  SELECT * FROM users          │
+     │                               │  WHERE email = ?              │
+     │                               │ ────────────────────────────▶ │
+     │                               │                               │
+     │                               │ ◀─── user row ─────────────── │
+     │                               │                               │
+     │                               │  bcryptjs.compare(password,   │
+     │                               │    user.password_hash)        │
+     │                               │                               │
+     │                               │  sign({ userId, tokenVersion })│
+     │  { accessToken, refreshToken, │                               │
+     │    user }                     │                               │
+     │ ◀────────────────────────────│                               │
+     │                               │                               │
+     │  存储 token 到 localStorage   │                               │
+     │                               │                               │
+     │  ××× 15分钟后 AccessToken 过期 ×××                             │
+     │                               │                               │
+     │  POST /api/auth/refresh       │                               │
+     │  { refreshToken }             │                               │
+     │ ────────────────────────────▶ │  jwt.verify(refreshToken)     │
+     │                               │  检查 tokenVersion ==         │
+     │                               │    user.tokenVersion          │
+     │                               │                               │
+     │  { accessToken, refreshToken }│                               │
+     │ ◀────────────────────────────│                               │
+     │                               │                               │
+```
+
+#### JWT 双 Token 机制
+
+| Token | 有效期 | 存储 | 用途 |
+|-------|--------|------|------|
+| Access Token | 15 分钟 | 内存 + localStorage | 携带在 `Authorization: Bearer` 头调用 API |
+| Refresh Token | 7 天 | localStorage | 仅用于换取新 Token 对 |
+
+#### 401 并发刷新队列
+
+```
+请求 A (401) ──┐
+请求 B (401) ──┤──→ 检测 refreshPromise 是否存在
+               │     → 否: 发起 POST /api/auth/refresh
+               │     → 是: 等待同一个 Promise
+               │
+刷新成功 ──────┘→ 所有等待的请求用新 token 重试
+刷新失败 ──────┘→ 清除所有 token → 跳转登录页
+```
+
+**好处：** 多个并发请求同时遇到 401 时，只发送一次 refresh 请求，避免重复刷新和竞态。
+
+#### Token 吊销
+
+- `users.token_version` 字段嵌入 JWT payload
+- 管理员修改密码 → `tokenVersion++`（原子 `{ increment: 1 }`）
+- 所有已签发的旧 Token 在下次 refresh 时因版本不匹配被拒绝
+- 效果：改密后所有设备立即登出
+
+---
+
+### 2.5 关键设计决策
+
+| 决策 | 选择 | 原因 |
+|------|------|------|
+| **后台入口** | 隐藏式 URL（无导航链接） | 个人博客无需公开注册/登录入口，仅在地址栏输入 `/admin` 访问 |
+| **评论系统** | 游客盖楼（自引用表） | 无需用户系统，username 必填即可评论；递归 CTE + O(n) 树组装 |
+| **文章格式** | Markdown | 开发者熟悉的写作格式，react-markdown 渲染为 HTML |
+| **封面图** | 本地上传而非外链 URL | 避免外部图床失效，`/uploads/` 目录自托管 |
+| **阅读量** | fire-and-forget 递增 | `viewCount++` 不 await，不阻塞响应，允许少量偏差 |
+| **点赞** | 乐观更新 + localStorage 去重 + 失败回滚 | 即时反馈 > 严格准确性，toggle 支持取消 |
+| **自动保存** | localStorage 草稿 | 无需服务端，2 秒防抖，`beforeunload` 保护 |
+| **首页壁纸** | 单行 upsert 表 | 管理后台切换即可生效，支持 image/video 互切 |
+| **关于页面** | 数据库单行表 + CMS 编辑 | 内容可后台编辑，前端无硬编码文本 |
+| **文件上传** | UUID 重命名 + 扩展名白名单 | 防冲突、防遍历、防恶意文件类型 |
+
+---
+
+## 3. 目录结构
 
 ```
 my_Blog/
@@ -146,20 +415,20 @@ my_Blog/
 
 ---
 
-## 3. 数据库结构
+## 4. 数据库结构
 
 **数据库：** PostgreSQL 17
 **ORM：** Prisma 6.6
 **迁移：** `backend/prisma/migrations/`
 
-### 3.1 枚举类型
+### 4.1 枚举类型
 
 | 枚举 | 值 | 用途 |
 |------|-----|------|
 | `Role` | `ADMIN` | 用户角色（仅管理员） |
 | `PostStatus` | `DRAFT`, `PUBLISHED` | 文章发布状态 |
 
-### 3.2 数据表
+### 4.2 数据表
 
 #### users — 用户（管理员）
 
@@ -263,7 +532,7 @@ my_Blog/
 
 ---
 
-### 3.3 ER 关系图
+### 4.3 ER 关系图
 
 ```
 ┌──────────┐        ┌──────────┐        ┌──────────┐
@@ -287,9 +556,9 @@ my_Blog/
 
 ---
 
-## 4. 云端部署指南
+## 5. 云端部署指南
 
-### 4.1 服务器选型与环境准备
+### 5.1 服务器选型与环境准备
 
 #### 最低配置
 
@@ -382,7 +651,7 @@ ufw status verbose
 
 ---
 
-### 4.2 后端部署
+### 5.2 后端部署
 
 #### Step 1 — 克隆项目 & 配置环境变量
 
@@ -476,7 +745,7 @@ curl http://localhost:3001/api/posts   # 应返回 JSON
 
 ---
 
-### 4.3 前端部署
+### 5.3 前端部署
 
 #### Step 1 — 构建前端
 
@@ -505,7 +774,7 @@ cp -r /var/www/memorystory/frontend/dist/* /var/www/html/
 
 ---
 
-### 4.4 Nginx 反向代理
+### 5.4 Nginx 反向代理
 
 完整配置 `/etc/nginx/sites-available/memorystory`：
 
@@ -570,7 +839,7 @@ systemctl reload nginx
 
 ---
 
-### 4.5 HTTPS / SSL 证书
+### 5.5 HTTPS / SSL 证书
 
 使用 Let's Encrypt 免费 SSL 证书：
 
@@ -589,7 +858,7 @@ systemctl status certbot.timer
 
 ---
 
-### 4.6 日常运维命令
+### 5.6 日常运维命令
 
 #### PM2 进程管理
 
@@ -643,7 +912,7 @@ find /backup/ -name "memorystory_*.sql" -mtime +30 -delete
 
 ---
 
-## 5. 安全清单
+## 6. 安全清单
 
 部署到生产环境前，请逐项确认：
 

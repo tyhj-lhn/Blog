@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import { api } from '../lib/api';
@@ -18,12 +18,26 @@ export default function Home() {
   const postsRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
 
   // Fetch wallpaper from API
   const { data: wallpaper } = useQuery<{ type: string; url: string } | null>({
     queryKey: ['wallpaper'],
     queryFn: () => api.get('/wallpaper'),
   });
+
+  // Track wallpaper URL to detect changes (e.g. admin updates wallpaper)
+  const wallpaperUrl = wallpaper?.url ?? heroVideo;
+  const prevWallpaperUrl = useRef(wallpaperUrl);
+
+  useEffect(() => {
+    if (prevWallpaperUrl.current !== wallpaperUrl) {
+      setMediaLoaded(false);
+      prevWallpaperUrl.current = wallpaperUrl;
+    }
+  }, [wallpaperUrl]);
+
+  const handleMediaLoaded = useCallback(() => setMediaLoaded(true), []);
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
@@ -43,7 +57,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero — full-bleed video background, fills viewport */}
-      <section className="relative flex flex-col min-h-screen text-center overflow-hidden -mt-14">
+      <section className="relative flex flex-col min-h-screen text-center overflow-hidden -mt-14 bg-zinc-950">
         {/* Background video — use API wallpaper or default */}
         {wallpaper ? (
           wallpaper.type === 'video' ? (
@@ -54,12 +68,14 @@ export default function Home() {
               loop
               muted
               playsInline
+              onLoadedData={handleMediaLoaded}
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
           ) : (
             <img
               src={wallpaper.url}
               alt=""
+              onLoad={handleMediaLoaded}
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
           )
@@ -71,12 +87,13 @@ export default function Home() {
             loop
             muted
             playsInline
+            onLoadedData={handleMediaLoaded}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         )}
 
-        {/* Dark overlay for text readability — don't intercept clicks */}
-        <div className="absolute inset-0 bg-zinc-950/55 pointer-events-none" />
+        {/* Dark overlay — fades in after media loads, preventing grey flash */}
+        <div className={`absolute inset-0 bg-zinc-950/55 pointer-events-none transition-opacity duration-500 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`} />
 
         {/* Sound toggle */}
         <button
@@ -110,8 +127,11 @@ export default function Home() {
         </button>
       </section>
 
+      {/* 6px shadow gradient — softens the transition from hero to posts */}
+      <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+
       {/* Post grid — light surface, clear contrast with dark hero */}
-      <section ref={postsRef} className="bg-white px-4 py-12 md:py-16 border-t border-zinc-100">
+      <section ref={postsRef} className="bg-white px-4 py-12 md:py-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-heading text-3xl text-zinc-900 mb-6">最新文章</h2>
           {isLoading && (

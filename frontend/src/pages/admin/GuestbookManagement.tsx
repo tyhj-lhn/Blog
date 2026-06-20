@@ -17,18 +17,32 @@ export default function GuestbookManagement() {
   });
 
   const [deleteTarget, setDeleteTarget] = useState<GuestbookEntry | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.del(`/admin/guestbook/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-guestbook'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+      setDeleteTarget(null);
     },
   });
 
   return (
     <div className="p-6">
       <h1 className="font-heading text-3xl text-zinc-900 mb-6">留言管理</h1>
+
+      {/* Delete error */}
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       {isLoading && (
         <div className="animate-pulse space-y-2">
@@ -110,7 +124,6 @@ export default function GuestbookManagement() {
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
-          setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
       />

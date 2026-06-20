@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma.js';
 import { slugify } from '../lib/slugify.js';
 import { notFound } from '../lib/errors.js';
-import { authGuard } from '../middleware/auth.js';
+import { authGuard, adminGuard } from '../middleware/auth.js';
 import { paginationSchema, searchQuerySchema } from '../schemas/common.schema.js';
 import {
   createPostSchema,
@@ -181,9 +181,9 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return post;
   });
 
-  // POST /api/admin/posts — create (protected)
+  // POST /api/admin/posts — create (protected, admin only)
   fastify.post('/admin/posts', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
     schema: { body: createPostSchema },
   }, async (request, reply) => {
     const body = request.body as {
@@ -207,9 +207,9 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return reply.status(201).send(post);
   });
 
-  // PUT /api/admin/posts/:id — update (protected)
+  // PUT /api/admin/posts/:id — update (protected, admin only)
   fastify.put('/admin/posts/:id', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
     schema: { body: updatePostSchema, params: postIdParamsSchema },
   }, async (request) => {
     const { id } = request.params as { id: number };
@@ -235,9 +235,9 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return prisma.post.update({ where: { id }, data: updateData });
   });
 
-  // DELETE /api/admin/posts/:id — delete (protected)
+  // DELETE /api/admin/posts/:id — delete (protected, admin only)
   fastify.delete('/admin/posts/:id', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
     schema: { params: postIdParamsSchema },
   }, async (request, reply) => {
     const { id } = request.params as { id: number };

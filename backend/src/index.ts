@@ -42,7 +42,7 @@ export function buildApp() {
   fastify.register(rateLimit, rateLimitPresets.global);
 
   // File upload
-  fastify.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
+  fastify.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } }); // 50 MB
 
   // Serve uploaded files
   fastify.register(fastifyStatic, {

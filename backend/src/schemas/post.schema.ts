@@ -12,12 +12,12 @@ export const createPostSchema = {
       minLength: 1,
     },
     excerpt: {
-      type: 'string',
+      type: ['string', 'null'],
       maxLength: 500,
     },
     coverImage: {
-      type: 'string',
-      format: 'uri',
+      type: ['string', 'null'],
+      maxLength: 500,
     },
     status: {
       type: 'string',
@@ -45,12 +45,12 @@ export const updatePostSchema = {
       minLength: 1,
     },
     excerpt: {
-      type: 'string',
+      type: ['string', 'null'],
       maxLength: 500,
     },
     coverImage: {
-      type: 'string',
-      format: 'uri',
+      type: ['string', 'null'],
+      maxLength: 500,
     },
     status: {
       type: 'string',

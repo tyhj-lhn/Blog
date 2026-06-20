@@ -97,109 +97,157 @@ export default function PostDetail() {
 
   if (postLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-zinc-200 rounded w-1/2" />
-        <div className="h-5 bg-zinc-100 rounded w-1/4" />
-        <div className="h-4 bg-zinc-100 rounded w-full" />
-        <div className="h-4 bg-zinc-100 rounded w-full" />
-        <div className="h-4 bg-zinc-100 rounded w-3/4" />
-      </div>
+      <div>
+        {/* Loading hero */}
+        <section className="relative flex items-end min-h-[40vh] -mt-14 bg-zinc-800 animate-pulse">
+          <div className="absolute inset-0 bg-zinc-950/20" />
+          <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pb-8">
+            <div className="h-10 bg-zinc-700 rounded w-1/2 mb-4" />
+            <div className="h-5 bg-zinc-700 rounded w-1/4" />
+          </div>
+        </section>
+        {/* Content skeleton */}
+        <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+        <section className="bg-white px-4 py-12 md:py-16">
+          <div className="max-w-4xl mx-auto animate-pulse space-y-4">
+            <div className="h-4 bg-zinc-200 rounded w-full" />
+            <div className="h-4 bg-zinc-200 rounded w-full" />
+            <div className="h-4 bg-zinc-200 rounded w-3/4" />
+          </div>
+        </section>
       </div>
     );
   }
 
   if (postError || !post) {
-    return <div className="max-w-4xl mx-auto px-4 py-8"><p className="text-zinc-500 text-center py-12">文章未找到</p></div>;
+    return (
+      <div>
+        <section className="relative flex items-end min-h-[30vh] -mt-14 bg-zinc-800">
+          <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pb-8">
+            <h1 className="font-heading text-3xl text-white">文章未找到</h1>
+          </div>
+        </section>
+        <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+        <section className="bg-white px-4 py-12">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-zinc-500 text-center py-12">该文章可能已被删除或地址不正确</p>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-    <article>
-      {/* Post header */}
-      <header className="mb-8">
-        <h1 className="font-heading text-4xl md:text-5xl text-zinc-900 mb-4">
-          {post.title}
-        </h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
-          <span className="flex items-center gap-1.5">
-            <Calendar size={14} />
-            {formatDate(post.createdAt)}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Eye size={14} />
-            {post.viewCount} 阅读
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MessageCircle size={14} />
-            {post._count.comments} 评论
-          </span>
-          <button
-            type="button"
-            onClick={handleLike}
-            disabled={likePending}
-            className={`flex items-center gap-1.5 transition-colors duration-150 cursor-pointer ${
-              liked ? 'text-rose-500' : 'text-zinc-400 hover:text-rose-400'
-            }`}
-            aria-label={liked ? '已点赞' : '点赞'}
-          >
-            <Heart size={14} className={`shrink-0 ${liked ? 'fill-current' : ''}`} />
-            {likeCount} 点赞
-          </button>
-          {post.tags.length > 0 && (
-            <span className="flex items-center gap-1">
-              <TagIcon size={14} />
-              {post.tags.join(' · ')}
-            </span>
-          )}
-        </div>
-      </header>
-
-      {/* Post content */}
-      <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {post.content}
-        </ReactMarkdown>
-      </div>
-
-      {/* Divider */}
-      <hr className="border-zinc-200 mb-8" />
-
-      {/* Comments section */}
-      <section>
-        <h2 className="font-heading text-2xl text-zinc-900 mb-6">
-          评论 {comments.length > 0 && `(${comments.length})`}
-        </h2>
-
-        {/* New comment form */}
-        <div className="mb-8 p-4 border border-zinc-200 rounded-lg bg-white">
-          <CommentForm
-            onSubmit={async (data) => {
-              await submitComment.mutateAsync(data);
-            }}
-          />
-        </div>
-
-        {/* Comment tree */}
-        {commentsLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="animate-pulse space-y-2">
-                <div className="h-4 bg-zinc-100 rounded w-1/4" />
-                <div className="h-4 bg-zinc-50 rounded w-3/4" />
-              </div>
-            ))}
-          </div>
+    <div>
+      {/* Hero — cover image as top-half background, post metadata overlaid */}
+      <section
+        className={`relative flex items-end min-h-[50vh] -mt-14 ${
+          post.coverImage ? '' : 'bg-zinc-800'
+        }`}
+      >
+        {post.coverImage ? (
+          <>
+            <img
+              src={post.coverImage}
+              alt={post.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-zinc-950/55" />
+          </>
         ) : (
-          <CommentTree
-            comments={comments}
-            onSubmitReply={async (data) => {
-              await submitComment.mutateAsync(data);
-            }}
-          />
+          <div className="absolute inset-0 bg-zinc-950/30" />
         )}
+        {/* Title + meta overlaid at bottom */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pb-8">
+          <h1 className="font-heading text-4xl md:text-5xl text-white mb-4 drop-shadow-lg">
+            {post.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
+            <span className="flex items-center gap-1.5">
+              <Calendar size={14} />
+              {formatDate(post.createdAt)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Eye size={14} />
+              {post.viewCount} 阅读
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MessageCircle size={14} />
+              {post._count.comments} 评论
+            </span>
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={likePending}
+              className={`flex items-center gap-1.5 transition-colors duration-150 cursor-pointer ${
+                liked ? 'text-rose-400' : 'text-white/70 hover:text-rose-300'
+              }`}
+              aria-label={liked ? '已点赞' : '点赞'}
+            >
+              <Heart size={14} className={`shrink-0 ${liked ? 'fill-current' : ''}`} />
+              {likeCount} 点赞
+            </button>
+            {post.tags.length > 0 && (
+              <span className="flex items-center gap-1">
+                <TagIcon size={14} />
+                {post.tags.join(' · ')}
+              </span>
+            )}
+          </div>
+        </div>
       </section>
-    </article>
+
+      {/* 6px shadow gradient — softens the transition from hero to content */}
+      <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+
+      {/* Article content — white surface below */}
+      <section className="bg-white px-4 py-8 md:py-12">
+        <div className="max-w-4xl mx-auto">
+          <article>
+            <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {post.content}
+              </ReactMarkdown>
+            </div>
+          </article>
+
+          {/* Divider */}
+          <hr className="border-zinc-200 mb-8" />
+
+          {/* Comments section */}
+          <section>
+            <h2 className="font-heading text-2xl text-zinc-900 mb-6">
+              评论 {comments.length > 0 && `(${comments.length})`}
+            </h2>
+
+            <div className="mb-8 p-4 border border-zinc-200 rounded-lg bg-white">
+              <CommentForm
+                onSubmit={async (data) => {
+                  await submitComment.mutateAsync(data);
+                }}
+              />
+            </div>
+
+            {commentsLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="animate-pulse space-y-2">
+                    <div className="h-4 bg-zinc-100 rounded w-1/4" />
+                    <div className="h-4 bg-zinc-50 rounded w-3/4" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <CommentTree
+                comments={comments}
+                onSubmitReply={async (data) => {
+                  await submitComment.mutateAsync(data);
+                }}
+              />
+            )}
+          </section>
+        </div>
+      </section>
     </div>
   );
 }

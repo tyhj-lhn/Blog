@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Edit3, Trash2, Search, Eye, MessageCircle, Heart } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, Eye, MessageCircle, Heart, ImageIcon } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PostSummary, PaginatedResponse, PostStatus } from '../../types';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -28,6 +28,7 @@ export default function PostManagement() {
   });
 
   const [deleteTarget, setDeleteTarget] = useState<PostSummary | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.del(`/admin/posts/${id}`),
@@ -35,6 +36,12 @@ export default function PostManagement() {
       queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+      setDeleteTarget(null);
     },
   });
 
@@ -60,7 +67,7 @@ export default function PostManagement() {
       {/* Search bar + Status filter */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
@@ -110,6 +117,13 @@ export default function PostManagement() {
         </div>
       </div>
 
+      {/* Delete error */}
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
+
       {/* Loading */}
       {isLoading && (
         <div className="animate-pulse space-y-2">
@@ -140,44 +154,61 @@ export default function PostManagement() {
                 key={post.id}
                 className="flex items-center justify-between border border-zinc-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Link
-                      to={`/admin/posts/${post.id}/edit`}
-                      className="font-medium text-zinc-800 hover:text-blue-600 transition-colors truncate"
-                    >
-                      {post.title}
-                    </Link>
-                    <span
-                      className={`shrink-0 px-2 py-0.5 rounded-full text-xs ${
-                        post.status === 'PUBLISHED'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {post.status === 'PUBLISHED' ? '已发布' : '草稿'}
-                    </span>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Cover thumbnail */}
+                  <div className="w-12 h-8 shrink-0 bg-zinc-100 rounded overflow-hidden">
+                    {post.coverImage ? (
+                      <img
+                        src={post.coverImage}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={14} className="text-zinc-300" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-zinc-400">
-                    <span className="flex items-center gap-1">
-                      <Eye size={12} />
-                      {post.viewCount}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle size={12} />
-                      {post._count.comments}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart size={12} />
-                      {post.likeCount}
-                    </span>
-                    <span>
-                      {new Date(post.createdAt).toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link
+                        to={`/admin/posts/${post.id}/edit`}
+                        className="font-medium text-zinc-800 hover:text-blue-600 transition-colors truncate"
+                      >
+                        {post.title}
+                      </Link>
+                      <span
+                        className={`shrink-0 px-2 py-0.5 rounded-full text-xs ${
+                          post.status === 'PUBLISHED'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {post.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-zinc-400">
+                      <span className="flex items-center gap-1">
+                        <Eye size={12} />
+                        {post.viewCount}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle size={12} />
+                        {post._count.comments}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart size={12} />
+                        {post.likeCount}
+                      </span>
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString('zh-CN', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 ml-4 shrink-0">
@@ -234,7 +265,6 @@ export default function PostManagement() {
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
-          setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
       />

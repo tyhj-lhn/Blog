@@ -65,5 +65,8 @@ env/
 # ===== Superpowers / Brainstorm =====
 .superpowers/
 
+# ===== Uploads =====
+backend/uploads/
+
 # ===== Misc =====
 *.bak

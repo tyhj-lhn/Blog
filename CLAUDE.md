@@ -653,6 +653,136 @@ my_Blog/
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (515KB JS, 39KB CSS)
 
+### ✅ Phase 4.5: 首页 Hero 过渡柔化 & 遮蔽闪烁修复 (2026-06-20)
+
+**目标:** 首页壁纸最下方与博文区域衔接过于生硬，用渐变阴影柔化过渡；刷新/返回首页时灰色蒙版先于壁纸出现。
+
+**修复:**
+
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| [Home.tsx:113](frontend/src/pages/Home.tsx#L113) | 插入 6px 渐变条 | `h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60` |
+| [Home.tsx:116](frontend/src/pages/Home.tsx#L116) | 移除 `border-t border-zinc-100` | 硬边框与渐变柔和过渡冲突 |
+| [Home.tsx:60](frontend/src/pages/Home.tsx#L60) | section 加 `bg-zinc-950` | 壁纸加载前为深色底色（与遮罩同色系），不再灰蒙 |
+| [Home.tsx:21,40](frontend/src/pages/Home.tsx#L21) | `mediaLoaded` 状态 + `handleMediaLoaded` | 追踪媒体首帧是否就绪 |
+| [Home.tsx:71,78,90](frontend/src/pages/Home.tsx#L71) | `onLoadedData` / `onLoad` | 三类媒体元素（API视频/图片/默认视频）均挂载就绪回调 |
+| [Home.tsx:33-38](frontend/src/pages/Home.tsx#L33) | URL 变更检测 | `wallpaperUrl` 变更时重置 `mediaLoaded`（admin 换壁纸后遮罩重新淡入） |
+| [Home.tsx:96](frontend/src/pages/Home.tsx#L96) | 遮罩淡入动画 | `transition-opacity duration-500`，`mediaLoaded ? opacity-100 : opacity-0` |
+
+**原理:** section 底色 `bg-zinc-950` 与遮罩 `zinc-950/55` 同色系，壁纸加载前整个 hero 为深色，视觉上有意为之。壁纸首帧就绪后遮罩 500ms 淡入，消除灰色闪烁。
+
+**验证:** tsc ✓
+
+### ✅ Phase 4.6: 博文详情页 Hero 重构 (2026-06-20)
+
+**目标:** 博文用封面图作为上半部分背景（hero），标题+元数据覆叠其上，下方白底展开正文。
+
+**PostDetail 页面结构变更:**
+
+| 区域 | 原设计 | 新设计 |
+|------|--------|--------|
+| 上半部分 | 无背景，全白底 → 标题+元数据+正文+评论区 | 封面图 hero（`min-h-[50vh]`）→ 标题+元数据白色覆叠文本 |
+| 过渡 | 无 | 6px 渐变条 `from-zinc-950/40 to-zinc-200/60` |
+| 下半部分 | 无分层 | 白色背景 → 正文 + 评论区 |
+| 无封面时 | — | `bg-zinc-800` 深色 fallback |
+
+**三种状态处理:**
+
+| 状态 | Hero | 正文区 |
+|------|------|--------|
+| 加载中 | `bg-zinc-800 animate-pulse` + 骨架标题行 | 白底骨架段落 |
+| 文章未找到 | `bg-zinc-800 min-h-[30vh]` + "文章未找到" | 白底提示文本 |
+| 正常 | 封面图（或 `bg-zinc-800` fallback）+ 55%遮罩 + 标题/元数据 | 白底 prose + 评论区 |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | 全面重构 — loading/error/正常三态均有 hero + 渐变 + 白底双层结构 |
+
+**验证:** tsc ✓
+
+### ✅ Phase 4.7: DELETE 修复 + 壁纸管理重写 + 草稿箱 + Schema 修复 (2026-06-20)
+
+**Bug #1 — DELETE 操作全部报错:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 所有 DELETE 返回 `"Body cannot be empty when content-type is set to 'application/json'"` | [api.ts](frontend/src/lib/api.ts) 无条件设置 `Content-Type: application/json`，Fastify 拒绝空 body | 仅在有 body 时加 Content-Type header |
+
+```typescript
+// Before
+const headers: Record<string, string> = {
+  'Content-Type': 'application/json',
+  ...options.headers,
+};
+// After
+const headers: Record<string, string> = {
+  ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+  ...(options.headers as Record<string, string>),
+};
+```
+
+**Bug #2 — 创建草稿时报 `coverImage must match format "uri"`:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 选择「草稿」点击「创建」报错 | `coverImage` schema 用了 `format: 'uri'`，但封面图已改为本地上传（相对路径 `/uploads/xxx.jpg`），且 `null` 也被 format 校验 | 移除 `format: 'uri'`，改为 `type: ['string', 'null'], maxLength: 500` |
+
+```typescript
+// Before (both schemas)
+coverImage: { type: ['string', 'null'], format: 'uri' }
+// After
+coverImage: { type: ['string', 'null'], maxLength: 500 }
+```
+
+**Bug #3 — 摘要输入框按回车触发表单提交:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 摘要框按 Enter 触发创建，报 `coverImage must match format 'uri'` | `<input type="text">` 在 `<form>` 内按回车触发 submit | 摘要 input 加 `onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}` |
+
+**功能 #1 — WallpaperAdmin 全面重写:**
+
+移除 URL 输入方式，改为纯文件管理：
+
+| 功能 | 实现 |
+|------|------|
+| 上传区 | 拖拽/点击上传，接受 jpg/png/mp4，客户端 MIME + 大小校验 |
+| 文件库 | CSS Grid 缩略图网格，图片 `<img>` / 视频 `<video>`，当前壁纸绿色环 + "当前" 徽章 |
+| 选中 | 点击选中显示蓝色环，两步操作（选中 → 设为目标）防止误改 |
+| 预览 | `aspect-video` 容器，自动区分 image/video 渲染 |
+| 后端 `GET /admin/uploads` | 读取 uploads 目录，返回 `UploadedFile[]`（按 modifiedAt 降序，jpg/png/mp4 过滤） |
+
+**功能 #2 — PostEditor 草稿箱 + 保存草稿按钮:**
+
+| 功能 | 实现 |
+|------|------|
+| 「保存草稿」按钮 | 在「创建/更新」按钮下方，强制以 `DRAFT` 状态保存；草稿可为空标题（至少填内容）或空内容（至少填标题） |
+| 草稿箱面板 | 新建文章模式左侧栏底部，列出所有 DRAFT 文章（标题、日期），点击跳转编辑 |
+| 草稿保存后停留 | `createMutation`/`updateMutation` 的 `onSuccess` 中根据 `post.status` 决定跳转 — DRAFT 留在当前页（新建→进入编辑模式），PUBLISHED 跳转仪表盘 |
+| 摘要在预览中显示 | `PostPreview` 改为显示 `excerpt` 而非完整 Markdown content |
+
+**前端 mutation 重构:**
+- `createMutation` / `updateMutation` 的 `mutationFn` 接受可选 `forceStatus` 参数
+- `buildPayload(forceStatus?)` 提取公共 payload 构建逻辑
+- `handleSubmit` 传当前 status，`handleSaveDraft` 强制传 `'DRAFT'`
+
+**新增类型:**
+| 类型 | 字段 |
+|------|------|
+| `UploadedFile` | `filename, url, type: 'image' \| 'video', size, modifiedAt` |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [api.ts](frontend/src/lib/api.ts) | Content-Type 条件化（DELETE 修复） |
+| [post.schema.ts](backend/src/schemas/post.schema.ts) | `coverImage` 移除 `format: 'uri'`，改为 `type: ['string', 'null'], maxLength: 500` |
+| [upload.routes.ts](backend/src/routes/upload.routes.ts) | 扩展 mp4 支持 + 文件扩展名校验 + 新增 `GET /admin/uploads` |
+| [index.ts](backend/src/index.ts) | multipart 上限 5MB→50MB |
+| [types/index.ts](frontend/src/types/index.ts) | 新增 `UploadedFile` 接口 |
+| [WallpaperAdmin.tsx](frontend/src/pages/admin/WallpaperAdmin.tsx) | 全面重写 — 上传区 + 文件库 + 预览 + 保存 |
+| [PostPreview.tsx](frontend/src/components/PostPreview.tsx) | 摘要区改为显示 `excerpt` 而非 content |
+| [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | 草稿箱面板 + 保存草稿按钮 + 草稿保存后停留 + mutation 重构 |
+
+**验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (524KB JS, 44KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

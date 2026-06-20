@@ -30,12 +30,19 @@ export default function CommentManagement() {
   });
 
   const [deleteTarget, setDeleteTarget] = useState<AdminComment | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.del(`/admin/comments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-comments'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+      setDeleteTarget(null);
     },
   });
 
@@ -77,6 +84,13 @@ export default function CommentManagement() {
           </button>
         )}
       </form>
+
+      {/* Delete error */}
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       {isLoading && (
         <div className="animate-pulse space-y-2">
@@ -159,13 +173,12 @@ export default function CommentManagement() {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="确认删除"
-        message={`确定要删除「${deleteTarget?.username ?? ''}」的评论吗？此操作不可撤销。`}
+        message={`确定要删除「${deleteTarget?.username ?? ''}」的评论吗？此操作不可撤销。如果该评论有回复，所有关联回复也将被删除。`}
         confirmLabel="删除"
         variant="danger"
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
-          setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
       />

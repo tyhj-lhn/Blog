@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileText, BookOpen, PenSquare, MessageCircle, BookMarked, Edit3, Trash2, Image } from 'lucide-react';
+import { FileText, BookOpen, PenSquare, MessageCircle, BookMarked, Edit3, Trash2, Image, ImageIcon } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { AdminStats } from '../../types';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -16,12 +16,19 @@ export default function AdminDashboard() {
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'post' | 'comment'; id: number; label: string } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const deletePostMutation = useMutation({
     mutationFn: (id: number) => api.del(`/admin/posts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+      setDeleteTarget(null);
     },
   });
 
@@ -29,6 +36,12 @@ export default function AdminDashboard() {
     mutationFn: (id: number) => api.del(`/admin/comments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+      setDeleteTarget(null);
     },
   });
 
@@ -39,7 +52,6 @@ export default function AdminDashboard() {
     } else {
       deleteCommentMutation.mutate(deleteTarget.id);
     }
-    setDeleteTarget(null);
   };
 
   if (isLoading) {
@@ -91,6 +103,13 @@ export default function AdminDashboard() {
           新建文章
         </Link>
       </div>
+
+      {/* Delete error */}
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -147,22 +166,39 @@ export default function AdminDashboard() {
                 key={post.id}
                 className="flex items-center justify-between border border-zinc-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
               >
-                <div className="flex-1 min-w-0">
-                  <Link
-                    to={`/admin/posts/${post.id}/edit`}
-                    className="font-medium text-zinc-800 hover:text-blue-600 transition-colors truncate block"
-                  >
-                    {post.title}
-                  </Link>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
-                    <span>{post.viewCount} 阅读</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      post.status === 'PUBLISHED'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {post.status === 'PUBLISHED' ? '已发布' : '草稿'}
-                    </span>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Cover thumbnail */}
+                  <div className="w-12 h-8 shrink-0 bg-zinc-100 rounded overflow-hidden">
+                    {post.coverImage ? (
+                      <img
+                        src={post.coverImage}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={14} className="text-zinc-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <Link
+                      to={`/admin/posts/${post.id}/edit`}
+                      className="font-medium text-zinc-800 hover:text-blue-600 transition-colors truncate block"
+                    >
+                      {post.title}
+                    </Link>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
+                      <span>{post.viewCount} 阅读</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        post.status === 'PUBLISHED'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {post.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 ml-4 shrink-0">

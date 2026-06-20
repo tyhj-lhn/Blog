@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, ArrowLeft, Trash2, AlertTriangle, FileUp } from 'lucide-react';
+import { Save, ArrowLeft, Trash2, AlertTriangle, FileUp, FolderOpen, FileText, ChevronRight } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { Post } from '../../types';
+import type { Post, PostSummary, PaginatedResponse } from '../../types';
 import type { MarkdownAction } from '../../components/MarkdownToolbar';
 import MarkdownToolbar from '../../components/MarkdownToolbar';
 import CoverImageUpload from '../../components/CoverImageUpload';
@@ -75,39 +75,56 @@ export default function PostEditor() {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [existingPost]);
 
+  // Fetch drafts for the drafts panel (only in new-post mode)
+  const { data: draftsData } = useQuery<PaginatedResponse<PostSummary>>({
+    queryKey: ['admin-posts', 1, '', 'DRAFT'],
+    queryFn: () =>
+      api.get('/admin/posts', { page: 1, limit: 50, status: 'DRAFT' }),
+    enabled: !isEdit,
+  });
+
+  const drafts = draftsData?.data ?? [];
+
+  const buildPayload = (forceStatus?: 'DRAFT' | 'PUBLISHED') => ({
+    title: title.trim(),
+    content: content.trim(),
+    excerpt: excerpt.trim() || null,
+    coverImage: coverImage.trim() || null,
+    tags,
+    status: forceStatus ?? status,
+  });
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      api.post('/admin/posts', {
-        title: title.trim(),
-        content: content.trim(),
-        excerpt: excerpt.trim() || undefined,
-        coverImage: coverImage.trim() || undefined,
-        tags,
-        status,
-      }),
-    onSuccess: () => {
+    mutationFn: (forceStatus?: 'DRAFT' | 'PUBLISHED') =>
+      api.post<Post>('/admin/posts', buildPayload(forceStatus)),
+    onSuccess: (post) => {
       onSaveSuccess();
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      navigate('/admin/dashboard');
+      queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+      if (post.status === 'DRAFT') {
+        // Stay on page — navigate to edit mode for this draft
+        navigate(`/admin/posts/${post.id}/edit`, { replace: true });
+      } else {
+        navigate('/admin/dashboard');
+      }
     },
     onError: (err: Error) => setError(err.message),
   });
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      api.put(`/admin/posts/${id}`, {
-        title: title.trim(),
-        content: content.trim(),
-        excerpt: excerpt.trim() || undefined,
-        coverImage: coverImage.trim() || undefined,
-        tags,
-        status,
-      }),
-    onSuccess: () => {
+    mutationFn: (forceStatus?: 'DRAFT' | 'PUBLISHED') =>
+      api.put<Post>(`/admin/posts/${id}`, buildPayload(forceStatus)),
+    onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      navigate('/admin/dashboard');
+      queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+      if (post.status === 'DRAFT') {
+        // Stay on the current edit page
+        setError(null);
+      } else {
+        navigate('/admin/dashboard');
+      }
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -119,7 +136,10 @@ export default function PostEditor() {
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       navigate('/admin/dashboard');
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      setError(err.message);
+      setShowDeleteDialog(false);
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -130,9 +150,25 @@ export default function PostEditor() {
     if (!content.trim()) { setError('请输入文章内容'); return; }
 
     if (isEdit) {
-      updateMutation.mutate();
+      updateMutation.mutate(status);
     } else {
-      createMutation.mutate();
+      createMutation.mutate(status);
+    }
+  };
+
+  // Save as draft regardless of the status dropdown
+  const handleSaveDraft = () => {
+    setError(null);
+
+    if (!title.trim() && !content.trim()) {
+      setError('请至少填写标题或内容');
+      return;
+    }
+
+    if (isEdit) {
+      updateMutation.mutate('DRAFT');
+    } else {
+      createMutation.mutate('DRAFT');
     }
   };
 
@@ -296,6 +332,7 @@ export default function PostEditor() {
                 type="text"
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                 placeholder="简短描述..."
                 maxLength={500}
                 className="w-full min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
@@ -334,6 +371,64 @@ export default function PostEditor() {
                 </button>
               </div>
             </div>
+
+            {/* Draft save button */}
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={isSubmitting || deleteMutation.isPending}
+              className="w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-lg border border-zinc-200 bg-white text-zinc-600 text-sm font-medium hover:bg-zinc-50 hover:border-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+            >
+              <Save size={16} />
+              {isSubmitting ? '保存中...' : '保存草稿'}
+            </button>
+
+            {/* Drafts panel — only in new-post mode */}
+            {!isEdit && (
+              <div className="border border-zinc-200 rounded-lg bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-100 bg-zinc-50/50">
+                  <FolderOpen size={14} className="text-zinc-400" />
+                  <span className="text-sm font-medium text-zinc-600">
+                    草稿箱
+                    {drafts.length > 0 && (
+                      <span className="ml-1 text-xs text-zinc-400">({drafts.length})</span>
+                    )}
+                  </span>
+                </div>
+                {drafts.length === 0 ? (
+                  <p className="text-xs text-zinc-400 text-center py-4 px-4">
+                    暂无草稿
+                  </p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto">
+                    {drafts.map((draft) => (
+                      <Link
+                        key={draft.id}
+                        to={`/admin/posts/${draft.id}/edit`}
+                        className="flex items-center gap-3 px-4 py-3 border-b border-zinc-50 last:border-none hover:bg-zinc-50 transition-colors cursor-pointer group"
+                      >
+                        <div className="w-8 h-8 rounded bg-zinc-100 flex items-center justify-center shrink-0">
+                          <FileText size={14} className="text-zinc-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-zinc-700 truncate group-hover:text-blue-600 transition-colors">
+                            {draft.title || '(无标题)'}
+                          </p>
+                          <p className="text-xs text-zinc-400 mt-0.5">
+                            {new Date(draft.createdAt).toLocaleDateString('zh-CN', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                        <ChevronRight size={14} className="text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right column — editor + preview */}
@@ -384,6 +479,7 @@ export default function PostEditor() {
               content={content}
               coverImage={coverImage || undefined}
               tags={tags}
+              excerpt={excerpt || undefined}
             />
           </div>
         </div>

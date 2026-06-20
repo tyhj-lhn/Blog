@@ -1,12 +1,11 @@
 import { Calendar, Tag as TagIcon } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 interface PostPreviewProps {
   title: string;
   content: string;
   coverImage?: string;
   tags?: string[];
+  excerpt?: string;
 }
 
 function todayString(): string {
@@ -17,7 +16,7 @@ function todayString(): string {
   });
 }
 
-export default function PostPreview({ title, content, coverImage, tags }: PostPreviewProps) {
+export default function PostPreview({ title, coverImage, tags, excerpt }: PostPreviewProps) {
   return (
     <div className="mt-4 border border-zinc-200 rounded-lg bg-white overflow-hidden">
       {/* Header */}
@@ -58,17 +57,17 @@ export default function PostPreview({ title, content, coverImage, tags }: PostPr
         <div className="border-t border-zinc-100" />
       </div>
 
-      {/* Content */}
+      {/* Excerpt — what appears on the card; full content only on PostDetail */}
       <div className="px-4 pb-4 pt-3">
-        <div className="prose prose-sm prose-zinc max-w-none">
-          {content ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content}
-            </ReactMarkdown>
-          ) : (
-            <p className="text-zinc-300 text-sm">预览区——在左侧输入 Markdown 内容</p>
-          )}
-        </div>
+        {excerpt ? (
+          <p className="text-zinc-500 text-sm leading-relaxed line-clamp-2">
+            {excerpt}
+          </p>
+        ) : (
+          <p className="text-zinc-300 text-sm">
+            预览区——摘要将显示在文章卡片上，正文需点击进入查看
+          </p>
+        )}
       </div>
     </div>
   );

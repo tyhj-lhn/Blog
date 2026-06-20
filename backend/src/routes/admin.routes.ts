@@ -19,7 +19,7 @@ export default async function adminRoutes(fastify: FastifyInstance): Promise<voi
       prisma.post.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, title: true, slug: true, status: true, viewCount: true, createdAt: true },
+        select: { id: true, title: true, slug: true, coverImage: true, status: true, viewCount: true, createdAt: true },
       }),
       prisma.comment.findMany({
         take: 5,

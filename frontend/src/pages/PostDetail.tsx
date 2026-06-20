@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
@@ -7,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { api } from '../lib/api';
 import type { Post, Comment } from '../types';
+import { useLikePost } from '../hooks/useLike';
 import CommentTree from '../components/CommentTree';
 import CommentForm from '../components/CommentForm';
 
@@ -16,17 +16,6 @@ function formatDate(iso: string): string {
     month: 'long',
     day: 'numeric',
   });
-}
-
-const LIKED_KEY = 'memorystory_liked_posts';
-
-function getLikedPosts(): Set<number> {
-  try {
-    const raw = localStorage.getItem(LIKED_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
 }
 
 export default function PostDetail() {
@@ -39,35 +28,21 @@ export default function PostDetail() {
     isError: postError,
   } = useQuery<Post>({
     queryKey: ['post', slug],
-    queryFn: () => api.get(`/posts/${slug}`),
+    queryFn: async () => {
+      const p = await api.get<Post>(`/posts/${slug}`);
+      // Invalidate post list so counts (viewCount, etc.) are fresh when navigating back
+      queryClient.invalidateQueries({ queryKey: ['posts'] }).catch(() => {});
+      return p;
+    },
     enabled: !!slug,
   });
 
-  // Like state (compute from post + localStorage during render; track optimistic offset via ref)
-  const [likePending, setLikePending] = useState(false);
-  const liked = post ? getLikedPosts().has(post.id) : false;
-  const likeCount = post ? post.likeCount : 0;
-
-  const handleLike = useCallback(async () => {
-    if (!post || liked || likePending) return;
-
-    setLikePending(true);
-    const likedPosts = getLikedPosts();
-    likedPosts.add(post.id);
-    localStorage.setItem(LIKED_KEY, JSON.stringify([...likedPosts]));
-
-    try {
-      await api.post(`/posts/${post.slug}/like`);
-      // Re-fetch to get the authoritative likeCount from server
-      queryClient.invalidateQueries({ queryKey: ['post', slug] });
-    } catch {
-      // Rollback on failure
-      likedPosts.delete(post.id);
-      localStorage.setItem(LIKED_KEY, JSON.stringify([...likedPosts]));
-    } finally {
-      setLikePending(false);
-    }
-  }, [post, liked, likePending, slug, queryClient]);
+  const { liked, likeCount, likePending, toggleLike } = useLikePost({
+    postId: post?.id ?? 0,
+    slug: slug ?? '',
+    initialLikeCount: post?.likeCount ?? 0,
+    invalidateQueries: { client: queryClient, key: ['post', slug] },
+  });
 
   const {
     data: comments = [],
@@ -91,8 +66,28 @@ export default function PostDetail() {
         ...data,
         postId: post!.id,
       }),
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel any outgoing post refetch so it doesn't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['post', slug] });
+      const previous = queryClient.getQueryData<Post>(['post', slug]);
+      if (previous) {
+        queryClient.setQueryData<Post>(['post', slug], {
+          ...previous,
+          _count: { comments: previous._count.comments + 1 },
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback optimistic comment count
+      if (context?.previous) {
+        queryClient.setQueryData(['post', slug], context.previous);
+      }
+    },
+    onSettled: () => {
+      // Refetch both post (for authoritative _count.comments) and comments
       queryClient.invalidateQueries({ queryKey: ['comments', post?.id] });
+      queryClient.invalidateQueries({ queryKey: ['post', slug] });
     },
   });
 
@@ -178,12 +173,12 @@ export default function PostDetail() {
             </span>
             <button
               type="button"
-              onClick={handleLike}
+              onClick={toggleLike}
               disabled={likePending}
               className={`flex items-center gap-1.5 transition-colors duration-150 cursor-pointer ${
                 liked ? 'text-rose-400' : 'text-white/70 hover:text-rose-300'
               }`}
-              aria-label={liked ? '已点赞' : '点赞'}
+              aria-label={liked ? '取消点赞' : '点赞'}
             >
               <Heart size={14} className={`shrink-0 ${liked ? 'fill-current' : ''}`} />
               {likeCount} 点赞

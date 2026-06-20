@@ -18,6 +18,7 @@ export interface User {
   username: string;
   email: string;
   role: 'ADMIN';
+  avatar: string | null;
 }
 
 export interface LoginResponse {

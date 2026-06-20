@@ -1,22 +1,10 @@
-import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Eye, MessageCircle, Heart, ImageIcon } from 'lucide-react';
-import { api } from '../lib/api';
+import { useLikePost } from '../hooks/useLike';
 import type { PostSummary } from '../types';
 
 interface PostCardProps {
   post: PostSummary;
-}
-
-const LIKED_KEY = 'memorystory_liked_posts';
-
-function getLikedPosts(): Set<number> {
-  try {
-    const raw = localStorage.getItem(LIKED_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
 }
 
 function formatDate(iso: string): string {
@@ -28,41 +16,11 @@ function formatDate(iso: string): string {
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  const [liked, setLiked] = useState(() => getLikedPosts().has(post.id));
-  const [likeCount, setLikeCount] = useState(post.likeCount);
-  const [likePending, setLikePending] = useState(false);
-
-  const handleLike = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (liked || likePending) return;
-
-      setLikePending(true);
-      // Optimistic update
-      setLiked(true);
-      setLikeCount((c) => c + 1);
-
-      // Persist to localStorage immediately
-      const likedPosts = getLikedPosts();
-      likedPosts.add(post.id);
-      localStorage.setItem(LIKED_KEY, JSON.stringify([...likedPosts]));
-
-      try {
-        const result = await api.post<{ likeCount: number }>(`/posts/${post.slug}/like`);
-        setLikeCount(result.likeCount);
-      } catch {
-        // Revert on failure
-        setLiked(false);
-        setLikeCount((c) => c - 1);
-        const rollback = getLikedPosts();
-        rollback.delete(post.id);
-        localStorage.setItem(LIKED_KEY, JSON.stringify([...rollback]));
-      } finally {
-        setLikePending(false);
-      }
-    },
-    [liked, likePending, post.id, post.slug],
-  );
+  const { liked, likeCount, likePending, toggleLike } = useLikePost({
+    postId: post.id,
+    slug: post.slug,
+    initialLikeCount: post.likeCount,
+  });
 
   return (
     <article className="group border border-zinc-200 rounded-lg overflow-hidden bg-white hover:border-blue-300 hover:shadow-md transition-all duration-200">
@@ -107,12 +65,12 @@ export default function PostCard({ post }: PostCardProps) {
           </span>
           <button
             type="button"
-            onClick={handleLike}
+            onClick={toggleLike}
             disabled={likePending}
             className={`flex items-center gap-1.5 min-w-11 transition-colors duration-150 cursor-pointer ${
               liked ? 'text-rose-500' : 'hover:text-rose-400'
             }`}
-            aria-label={liked ? '已点赞' : '点赞'}
+            aria-label={liked ? '取消点赞' : '点赞'}
           >
             <Heart size={14} className={`shrink-0 ${liked ? 'fill-current' : ''}`} />
             {likeCount}

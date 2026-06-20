@@ -2,8 +2,8 @@ import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma.js';
 import { generateTokenPair, verifyRefreshToken } from '../lib/jwt.js';
-import { unauthorized } from '../lib/errors.js';
-import { loginSchema, refreshSchema } from '../schemas/auth.schema.js';
+import { unauthorized, conflict, validationError } from '../lib/errors.js';
+import { loginSchema, refreshSchema, updateProfileSchema, changePasswordSchema } from '../schemas/auth.schema.js';
 import { rateLimitPresets } from '../middleware/rate-limit.js';
 import { authGuard } from '../middleware/auth.js';
 import { checkLockout, recordFailedAttempt, resetFailedAttempts } from '../lib/login-guard.js';
@@ -45,7 +45,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     return reply.send({
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar },
     });
   });
 
@@ -84,9 +84,73 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   }, async (request) => {
     const user = await prisma.user.findUnique({
       where: { id: request.userId! },
-      select: { id: true, username: true, email: true, role: true },
+      select: { id: true, username: true, email: true, role: true, avatar: true },
     });
     if (!user) throw unauthorized('User no longer exists');
     return user;
+  });
+
+  // PUT /api/auth/me — update profile (username / avatar)
+  fastify.put('/me', {
+    preHandler: [authGuard],
+    schema: { body: updateProfileSchema },
+  }, async (request, reply) => {
+    const { username, avatar } = request.body as { username?: string; avatar?: string | null };
+    const userId = request.userId!;
+
+    // At least one field must be provided
+    if (username === undefined && avatar === undefined) {
+      throw validationError('At least one of username or avatar is required');
+    }
+
+    // Check username uniqueness if changing
+    if (username !== undefined) {
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (existing && existing.id !== userId) {
+        throw conflict('Username already taken');
+      }
+    }
+
+    const data: Record<string, unknown> = {};
+    if (username !== undefined) data.username = username;
+    if (avatar !== undefined) data.avatar = avatar;
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, username: true, email: true, role: true, avatar: true },
+    });
+
+    return reply.send(user);
+  });
+
+  // PUT /api/auth/me/password — change password
+  fastify.put('/me/password', {
+    config: { rateLimit: rateLimitPresets.auth },
+    preHandler: [authGuard],
+    schema: { body: changePasswordSchema },
+  }, async (request, reply) => {
+    const { currentPassword, newPassword } = request.body as { currentPassword: string; newPassword: string };
+    const userId = request.userId!;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw unauthorized('User no longer exists');
+
+    // Verify current password
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw unauthorized('Current password is incorrect');
+
+    // Hash new password and bump tokenVersion to revoke all existing tokens
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        tokenVersion: { increment: 1 },
+      },
+    });
+
+    return reply.send({ message: 'Password changed successfully' });
   });
 }

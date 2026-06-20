@@ -7,6 +7,7 @@ import { paginationSchema, searchQuerySchema } from '../schemas/common.schema.js
 import {
   createPostSchema,
   updatePostSchema,
+  toggleLikeBodySchema,
   postSlugParamsSchema,
   postIdParamsSchema,
 } from '../schemas/post.schema.js';
@@ -86,26 +87,29 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     return post;
   });
 
-  // POST /api/posts/:slug/like — increment likeCount
-  fastify.post('/posts/:slug/like', {
-    schema: { params: postSlugParamsSchema },
+  // POST /api/posts/:slug/toggle-like — toggle like/unlike
+  fastify.post('/posts/:slug/toggle-like', {
+    schema: {
+      params: postSlugParamsSchema,
+      body: toggleLikeBodySchema,
+    },
   }, async (request) => {
     const { slug } = request.params as { slug: string };
+    const { liked } = request.body as { liked: boolean };
 
-    const post = await prisma.post.findUnique({ where: { slug }, select: { id: true, status: true } });
-    if (!post || post.status !== 'PUBLISHED') throw notFound('Post');
+    const newCount = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({
+        where: { slug },
+        select: { id: true, status: true, likeCount: true },
+      });
+      if (!post || post.status !== 'PUBLISHED') throw notFound('Post');
 
-    await prisma.post.update({
-      where: { slug },
-      data: { likeCount: { increment: 1 } },
+      const count = Math.max(0, post.likeCount + (liked ? 1 : -1));
+      await tx.post.update({ where: { slug }, data: { likeCount: count } });
+      return count;
     });
 
-    const updated = await prisma.post.findUnique({
-      where: { slug },
-      select: { likeCount: true },
-    });
-
-    return { likeCount: updated!.likeCount };
+    return { likeCount: newCount };
   });
 
   // GET /api/search

@@ -8,6 +8,7 @@ import {
   Image,
   ExternalLink,
   LogOut,
+  Settings,
   User,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/admin/comments', icon: MessageCircle, label: '评论管理' },
   { to: '/admin/guestbook', icon: BookOpen, label: '留言管理' },
   { to: '/admin/wallpaper', icon: Image, label: '背景壁纸' },
+  { to: '/admin/profile', icon: Settings, label: '管理员设置' },
 ];
 
 export default function AdminLayout() {
@@ -85,19 +87,26 @@ export default function AdminLayout() {
 
         {/* User info + Logout */}
         <div className="px-3 py-4 border-t border-zinc-800">
-          <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-              <User size={14} className="text-zinc-400" />
+          <Link
+            to="/admin/profile"
+            className="flex items-center gap-3 px-3 py-2 mb-1 rounded-lg hover:bg-zinc-800/60 transition-colors duration-150 group cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center shrink-0 overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <User size={14} className="text-zinc-400" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-zinc-200 truncate">
+              <p className="text-sm font-medium text-zinc-200 truncate group-hover:text-white transition-colors">
                 {user?.username ?? 'Admin'}
               </p>
               <p className="text-xs text-zinc-500 truncate">
                 {user?.email ?? ''}
               </p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-800/70 transition-colors duration-150 cursor-pointer"

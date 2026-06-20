@@ -24,3 +24,35 @@ export const refreshSchema = {
     },
   },
 };
+
+export const updateProfileSchema = {
+  type: 'object',
+  properties: {
+    username: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 50,
+    },
+    avatar: {
+      type: ['string', 'null'],
+      maxLength: 500,
+    },
+  },
+};
+
+export const changePasswordSchema = {
+  type: 'object',
+  required: ['currentPassword', 'newPassword'],
+  properties: {
+    currentPassword: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 128,
+    },
+    newPassword: {
+      type: 'string',
+      minLength: 6,
+      maxLength: 128,
+    },
+  },
+};

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import Layout from './components/Layout';
@@ -20,6 +20,7 @@ import PostManagement from './pages/admin/PostManagement';
 import CommentManagement from './pages/admin/CommentManagement';
 import GuestbookManagement from './pages/admin/GuestbookManagement';
 import WallpaperAdmin from './pages/admin/WallpaperAdmin';
+import AdminProfile from './pages/admin/AdminProfile';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,13 +28,18 @@ const queryClient = new QueryClient({
   },
 });
 
+function PostDetailRoute() {
+  const { slug } = useParams<{ slug: string }>();
+  return <PostDetail key={slug} />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       {/* Public routes — use blog Layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/post/:slug" element={<PostDetail />} />
+        <Route path="/post/:slug" element={<PostDetailRoute />} />
         <Route path="/tags" element={<TagsPage />} />
         <Route path="/guestbook" element={<Guestbook />} />
         <Route path="/about" element={<About />} />
@@ -58,6 +64,7 @@ function AppRoutes() {
         <Route path="/admin/comments" element={<CommentManagement />} />
         <Route path="/admin/guestbook" element={<GuestbookManagement />} />
         <Route path="/admin/wallpaper" element={<WallpaperAdmin />} />
+        <Route path="/admin/profile" element={<AdminProfile />} />
       </Route>
 
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

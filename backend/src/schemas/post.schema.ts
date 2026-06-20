@@ -63,6 +63,14 @@ export const updatePostSchema = {
   },
 };
 
+export const toggleLikeBodySchema = {
+  type: 'object',
+  required: ['liked'],
+  properties: {
+    liked: { type: 'boolean' },
+  },
+};
+
 export const postSlugParamsSchema = {
   type: 'object',
   required: ['slug'],

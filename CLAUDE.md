@@ -58,7 +58,7 @@ my_Blog/
 │       │   ├── auth.ts             # authGuard (JWT verify) + adminGuard
 │       │   └── rate-limit.ts       # Presets: global 100/min, auth 5/min, guestbook 3/min
 │       └── routes/
-│           ├── auth.routes.ts      # POST login, POST refresh, GET me
+│           ├── auth.routes.ts      # POST login/refresh, GET/PUT me, PUT me/password
 │           ├── posts.routes.ts     # GET list/slug/search, POST/PUT/DELETE admin
 │           ├── comments.routes.ts  # GET threaded by postId, POST create, GET admin list, DELETE admin
 │           ├── tags.routes.ts      # GET all tags with counts ← unnest(tags)
@@ -85,6 +85,7 @@ my_Blog/
 │       ├── hooks/
 │       │   ├── useAuth.tsx         # AuthProvider (login/logout + user rehydration)
 │       │   ├── useAuth.ts          # AuthContext + useAuth() hook
+│       │   ├── useLike.ts          # Like toggle hook (localStorage + optimistic + rollback)
 │       │   ├── useAutoSave.ts      # localStorage draft auto-save + beforeunload guard
 │       │   └── useDebounce.ts      # Debounce hook
 │       ├── components/
@@ -110,7 +111,8 @@ my_Blog/
 │               ├── PostManagement.tsx    # Browse/search all posts, inline delete
 │               ├── CommentManagement.tsx # Comment list, search, pagination, delete
 │               ├── GuestbookManagement.tsx # Guestbook list, pagination, delete
-│               └── WallpaperAdmin.tsx    # Wallpaper type/URL + live preview
+│               ├── WallpaperAdmin.tsx    # Wallpaper type/URL + live preview
+│               └── AdminProfile.tsx      # Avatar, username, password management
 ```
 
 ## Key Design Decisions
@@ -189,7 +191,7 @@ my_Blog/
 | Path | Component | Auth |
 |------|-----------|------|
 | `/` | Home | Public |
-| `/post/:slug` | PostDetail | Public |
+| `/post/:slug` | PostDetail (via PostDetailRoute, key={slug}) | Public |
 | `/tags` | TagsPage | Public |
 | `/guestbook` | Guestbook | Public |
 | `/about` | About | Public |
@@ -203,6 +205,7 @@ my_Blog/
 | `/admin/comments` | CommentManagement | Auth required |
 | `/admin/guestbook` | GuestbookManagement | Auth required |
 | `/admin/wallpaper` | WallpaperAdmin | Auth required |
+| `/admin/profile` | AdminProfile | Auth required |
 | `*` | → redirect / | — |
 
 ## Design System — Swiss Modernism 2.0
@@ -219,7 +222,7 @@ my_Blog/
 | Border | #E4E4E7 | `zinc-200` |
 
 ### Typography
-- **Headings**: Caveat (Google Fonts, 400–700) — handwritten, personal feel
+- **Headings**: Noto Serif SC (Google Fonts, 400–900) — editorial serif, excellent Chinese support
 - **Body**: Quicksand (Google Fonts, 300–700) — clean, warm, readable
 
 ### UX Rules (CRITICAL)
@@ -241,6 +244,7 @@ my_Blog/
 | passwordHash | String | bcryptjs cost 12 |
 | role | Role | ADMIN only |
 | tokenVersion | Int (default 0) | For refresh token revocation |
+| avatar | String? (500) | Admin avatar URL |
 
 ### Post
 | Field | Type | Notes |
@@ -302,7 +306,7 @@ my_Blog/
 | GET | `/api/wallpaper` | Current wallpaper (type + url, for homepage hero) |
 | POST | `/api/comments` | Create comment. Body: `{content, postId, username, email?, websiteUrl?, parentId?}` |
 | POST | `/api/guestbook` | Create guestbook entry. Body: `{nickname, message}` |
-| POST | `/api/posts/:slug/like` | Increment post likeCount. Idempotent per-user via localStorage |
+| POST | `/api/posts/:slug/toggle-like` | Toggle post like/unlike. Body: `{liked: boolean}` → `{likeCount}`. Atomic via `$transaction` |
 
 ### Auth
 | Method | Path | Description |
@@ -310,6 +314,8 @@ my_Blog/
 | POST | `/api/auth/login` | Login → `{accessToken, refreshToken, user}` |
 | POST | `/api/auth/refresh` | Refresh → new token pair |
 | GET | `/api/auth/me` | Current user info (token rehydration after page refresh) |
+| PUT | `/api/auth/me` | Update profile (username, avatar) |
+| PUT | `/api/auth/me/password` | Change password (verifies current, bumps tokenVersion) |
 
 ### Protected (JWT required — authGuard middleware)
 | Method | Path | Description |
@@ -834,6 +840,117 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 | [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | 移除 `excerpt` prop（PostPreview 不再需要） |
 
 **验证:** tsc ✓ · ESLint 0 ✓
+
+### ✅ Phase 4.9: 管理员设置 — 头像 / 账户名 / 密码 (2026-06-20)
+
+**目标:** 后台增加管理员设置页面，支持更改头像、账户名、密码。
+
+**数据库变更:**
+| 变更 | 详情 |
+|------|------|
+| User 新增 `avatar` | `String? @db.VarChar(500)` — 迁移 `20260620061629_add_user_avatar` |
+
+**后端新增:**
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/auth/me` | PUT | 更新账户名/头像，检查用户名唯一性。返回完整 User |
+| `/api/auth/me/password` | PUT | 更改密码（验证当前密码 + atomic tokenVersion increment），速率限制 5/min |
+
+**后端修复 (code review):**
+| 修复 | 说明 |
+|------|------|
+| tokenVersion 原子递增 | `tokenVersion: user.tokenVersion + 1` → `tokenVersion: { increment: 1 }` — 防止 TOCTOU 竞态 |
+| 改密端点速率限制 | 添加 `rateLimitPresets.auth` (5/min) 防暴力破解 |
+| `currentPassword` schema | 添加 `maxLength: 128` — 与 `newPassword` 一致 |
+
+**前端新增:**
+| 页面/组件 | 路由 | 功能 |
+|-----------|------|------|
+| [AdminProfile.tsx](frontend/src/pages/admin/AdminProfile.tsx) | `/admin/profile` | 三区块：头像（hover 上传/移除）、账户名（编辑+保存）、密码（当前密码+新密码） |
+
+**前端修改:**
+| 文件 | 变更 |
+|------|------|
+| [types/index.ts](frontend/src/types/index.ts) | `User` 接口新增 `avatar: string \| null` |
+| [useAuth.ts](frontend/src/hooks/useAuth.ts) | `AuthContextValue` 新增 `updateUser: (user: User) => void` |
+| [useAuth.tsx](frontend/src/hooks/useAuth.tsx) | `AuthProvider` 实现 `updateUser` callback |
+| [AdminLayout.tsx](frontend/src/components/AdminLayout.tsx) | 侧边栏导航新增「管理员设置」+ 头像区显示真实头像（点击跳转设置页） |
+| [App.tsx](frontend/src/App.tsx) | 新增 `/admin/profile` 路由 |
+
+**头像上传流程:**
+1. 用户点击头像 → 选择 JPG/PNG 文件（≤2MB 客户端校验）
+2. `POST /api/admin/upload` (FormData) → 返回 `{ url }`
+3. `PUT /api/auth/me { avatar: url }` → 更新 User → `updateUser()` 刷新上下文
+4. 侧边栏头像即时更新
+
+**安全要点:**
+- 改密后 `tokenVersion` 原子递增，所有设备立即登出
+- 当前密码验证通过后才允许更新
+- 用户名更新检查唯一性（排除自身）
+- 所有新端点均受 `authGuard` 保护
+- 改密端点速率限制 5/min
+
+**验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (535KB JS, 46KB CSS)
+
+### ✅ Phase 4.10: 点赞交互打磨 + 标题字体替换 (2026-06-20)
+
+**目标:** 点赞改为可取消 toggle，操作后即时显示，评论计数乐观更新，跨页面计数同步，标题字体 Caveat → Noto Serif SC。
+
+**后端 — Toggle-Like 端点:**
+| 变更 | 详情 |
+|------|------|
+| `POST /posts/:slug/like` → `POST /posts/:slug/toggle-like` | Body `{ liked: boolean }`，`liked: true` 递增 `likeCount`，`liked: false` 递减（floor 0） |
+| `$transaction` | Prisma 事务包裹 read→write，避免 TOCTOU 竞态 |
+| `toggleLikeBodySchema` | 新 Fastify JSON Schema：`required: ['liked'], properties: { liked: { type: 'boolean' } }` |
+
+**前端 — 共享 Like Hook:**
+| 变更 | 详情 |
+|------|------|
+| [useLike.ts](frontend/src/hooks/useLike.ts) | **新建** — 封装 localStorage、乐观 ±1 toggle、API 调用、失败回滚、可选 query invalidation |
+| `liked` 派生 | 从 `getLikedPosts().has(postId)` 渲染时直接计算，不存 state，保证跨导航准确 |
+| 竞态防护 | `useRef` 追踪挂载状态，unmount 后不回写 state |
+
+**前端 — PostCard 点赞 Toggle:**
+| 变更 | 详情 |
+|------|------|
+| 移除内联 like 逻辑 | 删除 `LIKED_KEY`、`getLikedPosts()`、`handleLike`（共 55 行） |
+| 使用 `useLikePost` | `const { liked, likeCount, likePending, toggleLike } = useLikePost(...)` |
+| Toggle 支持 | 已点赞→红心；点击→取消（心变灰，数 -1）。按钮防连点 |
+| `aria-label` | 动态 `'点赞'` / `'取消点赞'` |
+
+**前端 — PostDetail 点赞 + 评论 + 跨页同步:**
+| 变更 | 详情 |
+|------|------|
+| 使用 `useLikePost` | 含 `invalidateQueries: { client: queryClient, key: ['post', slug] }` — toggle 成功后刷新文章数据 |
+| 评论乐观计数 | `submitComment` 新增 `onMutate`（乐观 +1 `_count.comments`）→ `onError`（回滚）→ `onSettled`（刷新 post + comments） |
+| 跨页刷新 | `GET /posts/:slug` 的 `queryFn` 成功后 `invalidateQueries(['posts'])` — 返回首页时计数已更新 |
+| 导航隔离 | [App.tsx](frontend/src/App.tsx) 新增 `PostDetailRoute` 包装器 — 用 `key={slug}` 迫使不同文章间组件重挂载 |
+
+**字体替换:**
+| 变更 | 详情 |
+|------|------|
+| `--font-heading` | `'Caveat', cursive` → `'Noto Serif SC', serif` |
+| Google Fonts | 替换 `Caveat` 为 `Noto+Serif+SC:wght@400;500;600;700;900` |
+| 影响范围 | 全站 26 处 `font-heading` 自动继承新字体，无需逐个修改 |
+
+**新增类型:**
+| 类型 | 字段 |
+|------|------|
+| `UseLikePostOptions` | `{ postId, slug, initialLikeCount, invalidateQueries? }` |
+| `UseLikePostResult` | `{ liked, likeCount, likePending, toggleLike }` |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [posts.routes.ts](backend/src/routes/posts.routes.ts) | `POST /:slug/like` → `POST /:slug/toggle-like` + `$transaction` |
+| [post.schema.ts](backend/src/schemas/post.schema.ts) | 新增 `toggleLikeBodySchema` |
+| [useLike.ts](frontend/src/hooks/useLike.ts) | **NEW** — 共享点赞 toggle hook |
+| [PostCard.tsx](frontend/src/components/PostCard.tsx) | 使用 `useLikePost`，支持取消点赞 |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | `useLikePost` + 评论乐观计数 + 跨页刷新 |
+| [App.tsx](frontend/src/App.tsx) | `PostDetailRoute` 包装器（`key={slug}`） |
+| [index.css](frontend/src/index.css) | Caveat → Noto Serif SC |
+
+**验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (536KB JS, 46KB CSS)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

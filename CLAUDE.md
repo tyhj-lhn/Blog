@@ -661,7 +661,7 @@ my_Blog/
 
 | 文件 | 变更 | 说明 |
 |------|------|------|
-| [Home.tsx:113](frontend/src/pages/Home.tsx#L113) | 插入 6px 渐变条 | `h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60` |
+| [Home.tsx:113](frontend/src/pages/Home.tsx#L113) | 插入 6px 渐变条 | `h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60` |
 | [Home.tsx:116](frontend/src/pages/Home.tsx#L116) | 移除 `border-t border-zinc-100` | 硬边框与渐变柔和过渡冲突 |
 | [Home.tsx:60](frontend/src/pages/Home.tsx#L60) | section 加 `bg-zinc-950` | 壁纸加载前为深色底色（与遮罩同色系），不再灰蒙 |
 | [Home.tsx:21,40](frontend/src/pages/Home.tsx#L21) | `mediaLoaded` 状态 + `handleMediaLoaded` | 追踪媒体首帧是否就绪 |
@@ -782,6 +782,58 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 | [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | 草稿箱面板 + 保存草稿按钮 + 草稿保存后停留 + mutation 重构 |
 
 **验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (524KB JS, 44KB CSS)
+
+### ✅ Phase 4.8: 壁纸管理完善 + 预览一致性 + 细节修复 (2026-06-20)
+
+**目标:** 壁纸可重置为默认、文件库可删除文件；编辑器预览与发布页排版完全一致；喇叭仅视频时显示；Tailwind v4 规范类名。
+
+**Bug #1 — 壁纸保存失败 `body/url must match format "uri"`:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 选择上传文件后保存报错 | [wallpaper.schema.ts](backend/src/schemas/wallpaper.schema.ts) `url` 字段有 `format: 'uri'`，但上传返回相对路径 `/uploads/xxx.jpg` | 移除 `format: 'uri'`，改为 `minLength: 1, maxLength: 500` |
+
+**Bug #2 — 编辑器预览与发布排版不一致:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 编辑器预览只显示摘要，不渲染 Markdown 正文 | [PostPreview.tsx](frontend/src/components/PostPreview.tsx) 旧版仅显示 `excerpt`，完全不用 ReactMarkdown | 全面重写 PostPreview：hero缩略 + 渐变条 + `<ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>` 渲染正文 |
+
+**Bug #3 — 导入文档后换行全部消失:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 编辑器 textarea 中换行显示正常，发布后全部挤在一起 | 标准 Markdown 单 `\n` 不产生断行 | 安装 `remark-breaks`，PostDetail + PostPreview 两侧均启用 |
+
+**功能 #1 — 恢复默认壁纸:**
+| 层 | 变更 |
+|----|------|
+| 后端 | 新增 `DELETE /api/admin/wallpaper` — `deleteMany()` 清空壁纸记录，返回 204 |
+| 前端 | 保存按钮旁新增"恢复默认壁纸"按钮（`RotateCcw` 图标），仅在 wallpaper 存在时显示 |
+
+**功能 #2 — 文件库删除:**
+| 层 | 变更 |
+|----|------|
+| 后端 | 新增 `DELETE /api/admin/uploads/:filename` — 路径遍历防护 + 物理删除 `unlink()` |
+| 前端 | 文件卡片左上角悬停浮现红色垃圾桶按钮（`Trash2` + `e.stopPropagation()`），乐观更新 + 失败回滚 |
+
+**细节修复:**
+| 文件 | 变更 |
+|------|------|
+| [Home.tsx](frontend/src/pages/Home.tsx) | 喇叭按钮条件渲染：`{(!wallpaper \|\| wallpaper.type === 'video') && (...)}` — 图片壁纸时不显示 |
+| [Home.tsx](frontend/src/pages/Home.tsx) / [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) / [PostPreview.tsx](frontend/src/components/PostPreview.tsx) | Tailwind v4 规范：`h-[6px]` → `h-1.5`，`bg-gradient-to-b` → `bg-linear-to-b` |
+| [CLAUDE.md](CLAUDE.md) | 同步更新类名 |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [wallpaper.schema.ts](backend/src/schemas/wallpaper.schema.ts) | `url` 移除 `format: 'uri'` |
+| [wallpaper.routes.ts](backend/src/routes/wallpaper.routes.ts) | 新增 `DELETE /api/admin/wallpaper` |
+| [upload.routes.ts](backend/src/routes/upload.routes.ts) | 导入 `unlink`，新增 `DELETE /api/admin/uploads/:filename` |
+| [PostPreview.tsx](frontend/src/components/PostPreview.tsx) | 全面重写 — hero + 渐变 + ReactMarkdown 正文（与 PostDetail 一致） |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | 加 `remarkBreaks`，渐变类名规范 |
+| [Home.tsx](frontend/src/pages/Home.tsx) | 喇叭仅视频显示，渐变类名规范 |
+| [WallpaperAdmin.tsx](frontend/src/pages/admin/WallpaperAdmin.tsx) | 恢复默认按钮 + 删除文件按钮 + 类名规范 |
+| [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | 移除 `excerpt` prop（PostPreview 不再需要） |
+
+**验证:** tsc ✓ · ESLint 0 ✓
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

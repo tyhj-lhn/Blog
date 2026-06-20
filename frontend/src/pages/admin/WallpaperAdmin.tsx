@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Upload, X } from 'lucide-react';
+import { Save, Upload, X, RotateCcw, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { Wallpaper, UploadedFile } from '../../types';
 
@@ -48,6 +48,44 @@ export default function WallpaperAdmin() {
       queryClient.invalidateQueries({ queryKey: ['wallpaper'] });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    },
+  });
+
+  // Reset mutation
+  const resetMutation = useMutation({
+    mutationFn: () => api.del('/admin/wallpaper'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-wallpaper'] });
+      queryClient.invalidateQueries({ queryKey: ['wallpaper'] });
+      setSelectedFile(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    },
+  });
+
+  // Delete file mutation
+  const deleteFileMutation = useMutation({
+    mutationFn: (filename: string) => api.del(`/admin/uploads/${filename}`),
+    onMutate: async (filename) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-uploads'] });
+      const prev = queryClient.getQueryData<UploadedFile[]>(['admin-uploads']);
+      queryClient.setQueryData<UploadedFile[]>(
+        ['admin-uploads'],
+        (old) => old?.filter((f) => f.filename !== filename) ?? [],
+      );
+      return { prev };
+    },
+    onError: (_err, _filename, context) => {
+      if (context?.prev) queryClient.setQueryData(['admin-uploads'], context.prev);
+    },
+    onSuccess: (_data, filename) => {
+      // If deleted file was selected, clear selection
+      if (selectedFile?.filename === filename) {
+        setSelectedFile(null);
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-uploads'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-wallpaper'] });
+      queryClient.invalidateQueries({ queryKey: ['wallpaper'] });
     },
   });
 
@@ -239,6 +277,21 @@ export default function WallpaperAdmin() {
                     )}
                   </div>
                 </div>
+                {/* Delete file button */}
+                <button
+                  type="button"
+                  className="absolute top-1 left-1 z-10 opacity-0 group-hover:opacity-100 min-w-7 min-h-7 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-all duration-150 scale-75 group-hover:scale-100 cursor-pointer"
+                  aria-label={`删除 ${f.filename}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (selectedFile?.filename === f.filename) {
+                      setSelectedFile(null);
+                    }
+                    deleteFileMutation.mutate(f.filename);
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
                 {/* Current badge */}
                 {isCurrentWallpaper(f) && (
                   <span className="absolute top-1 right-1 text-[10px] leading-none bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-medium">
@@ -303,11 +356,28 @@ export default function WallpaperAdmin() {
           {saveMutation.isPending ? '保存中...' : '设为壁纸'}
         </button>
 
+        {wallpaper && (
+          <button
+            type="button"
+            disabled={resetMutation.isPending}
+            className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg border border-zinc-300 text-zinc-700 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+            onClick={() => resetMutation.mutate()}
+          >
+            <RotateCcw size={16} />
+            {resetMutation.isPending ? '重置中...' : '恢复默认壁纸'}
+          </button>
+        )}
+
         {saved && <span className="text-sm text-emerald-600">✔ 已保存</span>}
 
         {saveMutation.isError && (
           <span className="text-sm text-red-500">
             保存失败: {(saveMutation.error as Error).message}
+          </span>
+        )}
+        {resetMutation.isError && (
+          <span className="text-sm text-red-500">
+            重置失败: {(resetMutation.error as Error).message}
           </span>
         )}
       </div>

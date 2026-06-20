@@ -95,15 +95,17 @@ export default function Home() {
         {/* Dark overlay — fades in after media loads, preventing grey flash */}
         <div className={`absolute inset-0 bg-zinc-950/55 pointer-events-none transition-opacity duration-500 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`} />
 
-        {/* Sound toggle */}
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="absolute top-20 right-4 z-20 min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 backdrop-blur text-white/70 hover:text-white hover:bg-white/20 transition-colors cursor-pointer pointer-events-auto"
-          aria-label={muted ? '开启声音' : '静音'}
-        >
-          {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-        </button>
+        {/* Sound toggle — only when wallpaper is a video */}
+        {(!wallpaper || wallpaper.type === 'video') && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="absolute top-20 right-4 z-20 min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 backdrop-blur text-white/70 hover:text-white hover:bg-white/20 transition-colors cursor-pointer pointer-events-auto"
+            aria-label={muted ? '开启声音' : '静音'}
+          >
+            {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          </button>
+        )}
 
         {/* Centred text */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center pointer-events-none">
@@ -128,7 +130,7 @@ export default function Home() {
       </section>
 
       {/* 6px shadow gradient — softens the transition from hero to posts */}
-      <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+      <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Post grid — light surface, clear contrast with dark hero */}
       <section ref={postsRef} className="bg-white px-4 py-12 md:py-16">

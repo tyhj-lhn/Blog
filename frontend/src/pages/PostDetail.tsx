@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { api } from '../lib/api';
 import type { Post, Comment } from '../types';
 import CommentTree from '../components/CommentTree';
@@ -107,7 +108,7 @@ export default function PostDetail() {
           </div>
         </section>
         {/* Content skeleton */}
-        <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+        <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
         <section className="bg-white px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto animate-pulse space-y-4">
             <div className="h-4 bg-zinc-200 rounded w-full" />
@@ -127,7 +128,7 @@ export default function PostDetail() {
             <h1 className="font-heading text-3xl text-white">文章未找到</h1>
           </div>
         </section>
-        <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+        <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
         <section className="bg-white px-4 py-12">
           <div className="max-w-4xl mx-auto">
             <p className="text-zinc-500 text-center py-12">该文章可能已被删除或地址不正确</p>
@@ -198,14 +199,14 @@ export default function PostDetail() {
       </section>
 
       {/* 6px shadow gradient — softens the transition from hero to content */}
-      <div className="h-[6px] bg-gradient-to-b from-zinc-950/40 to-zinc-200/60" />
+      <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Article content — white surface below */}
       <section className="bg-white px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           <article>
             <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                 {post.content}
               </ReactMarkdown>
             </div>

@@ -35,4 +35,12 @@ export default async function wallpaperRoutes(fastify: FastifyInstance): Promise
 
     return wp;
   });
+
+  // DELETE /api/admin/wallpaper — admin reset to default
+  fastify.delete('/admin/wallpaper', {
+    preHandler: [authGuard],
+  }, async (_request, reply) => {
+    await prisma.wallpaper.deleteMany();
+    reply.code(204).send();
+  });
 }

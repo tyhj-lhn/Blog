@@ -8,7 +8,7 @@ export const updateWallpaperSchema = {
     },
     url: {
       type: 'string',
-      format: 'uri',
+      minLength: 1,
       maxLength: 500,
     },
   },

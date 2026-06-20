@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { createWriteStream, mkdirSync } from 'node:fs';
-import { readdir, stat } from 'node:fs/promises';
+import { readdir, stat, unlink } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { join, extname } from 'node:path';
 import { authGuard } from '../middleware/auth.js';
@@ -89,6 +89,36 @@ export default async function uploadRoutes(fastify: FastifyInstance): Promise<vo
     } catch (err) {
       request.log.error(err, 'Failed to list uploads');
       return reply.status(500).send({ error: { code: 'LIST_ERROR', message: '读取文件列表失败' } });
+    }
+  });
+
+  // DELETE /api/admin/uploads/:filename — delete an uploaded file
+  fastify.delete('/admin/uploads/:filename', {
+    preHandler: [authGuard],
+  }, async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+
+    // Prevent path traversal
+    if (filename.includes('/') || filename.includes('\\') || filename === '.' || filename === '..') {
+      return reply.status(400).send({ error: { code: 'INVALID_FILENAME', message: '无效的文件名' } });
+    }
+
+    const ext = extname(filename).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return reply.status(400).send({ error: { code: 'INVALID_TYPE', message: '不支持的文件类型' } });
+    }
+
+    const filepath = join(UPLOADS_DIR, filename);
+
+    try {
+      await unlink(filepath);
+      reply.code(204).send();
+    } catch (err: any) {
+      if (err.code === 'ENOENT') {
+        return reply.status(404).send({ error: { code: 'NOT_FOUND', message: '文件不存在' } });
+      }
+      request.log.error(err, 'Failed to delete upload');
+      return reply.status(500).send({ error: { code: 'DELETE_ERROR', message: '删除文件失败' } });
     }
   });
 }

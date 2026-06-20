@@ -479,7 +479,6 @@ export default function PostEditor() {
               content={content}
               coverImage={coverImage || undefined}
               tags={tags}
-              excerpt={excerpt || undefined}
             />
           </div>
         </div>

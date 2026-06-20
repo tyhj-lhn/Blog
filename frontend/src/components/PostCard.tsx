@@ -23,7 +23,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   return (
-    <article className="group border border-zinc-200 rounded-lg overflow-hidden bg-white hover:border-blue-300 hover:shadow-md transition-all duration-200">
+    <article className="group border border-zinc-200/70 rounded-2xl overflow-hidden bg-white shadow-card hover:shadow-card-hover hover:border-zinc-300/80 transition-all duration-300">
       {/* Cover image */}
       <Link to={`/post/${post.slug}`} className="block relative aspect-video bg-zinc-100 overflow-hidden">
         {post.coverImage ? (
@@ -41,10 +41,10 @@ export default function PostCard({ post }: PostCardProps) {
       </Link>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-6">
         {/* Title */}
         <Link to={`/post/${post.slug}`} className="block">
-          <h2 className="font-heading text-xl text-zinc-900 group-hover:text-blue-600 transition-colors duration-150 mb-3 leading-snug">
+          <h2 className="font-heading text-xl text-zinc-900 group-hover:text-blue-500 transition-colors duration-150 mb-3 leading-snug">
             {post.title}
           </h2>
         </Link>
@@ -83,7 +83,7 @@ export default function PostCard({ post }: PostCardProps) {
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 text-xs rounded-full bg-zinc-100 text-zinc-500 border border-zinc-200"
+                className="px-2.5 py-0.5 text-xs rounded-full bg-zinc-100/80 text-zinc-500 border border-zinc-200/60"
               >
                 {tag}
               </span>

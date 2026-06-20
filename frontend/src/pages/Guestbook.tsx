@@ -77,7 +77,7 @@ export default function Guestbook() {
           placeholder="你的昵称 *"
           maxLength={100}
           required
-          className="w-full min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+          className="w-full min-h-11 px-4 rounded-xl border border-zinc-200/70 bg-white text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-transparent transition-all duration-200"
         />
         <textarea
           value={message}
@@ -86,13 +86,13 @@ export default function Guestbook() {
           maxLength={10000}
           required
           rows={3}
-          className="w-full min-h-11 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+          className="w-full min-h-11 px-4 py-2 rounded-xl border border-zinc-200/70 bg-white text-sm placeholder:text-zinc-400 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-transparent transition-all duration-200"
         />
         {submitError && <p className="text-red-500 text-sm">{submitError}</p>}
         <button
           type="submit"
           disabled={submitEntry.isPending}
-          className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+          className="inline-flex items-center gap-2 min-h-11 px-6 rounded-xl bg-blue-600 text-white text-sm font-medium shadow-soft hover:bg-blue-700 hover:shadow-card disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
         >
           <MessageSquare size={16} />
           {submitEntry.isPending ? '提交中...' : '留言'}
@@ -103,7 +103,7 @@ export default function Guestbook() {
       {isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="border border-zinc-200 rounded-lg p-4 animate-pulse">
+            <div key={i} className="border border-zinc-200/70 rounded-2xl p-4 animate-pulse shadow-soft">
               <div className="h-4 bg-zinc-100 rounded w-1/4 mb-2" />
               <div className="h-4 bg-zinc-50 rounded w-3/4" />
             </div>
@@ -125,7 +125,7 @@ export default function Guestbook() {
             {data.data.map((entry) => (
               <div
                 key={entry.id}
-                className="border border-zinc-200 rounded-lg p-4 bg-white"
+                className="border border-zinc-200/70 rounded-2xl p-5 bg-white shadow-soft"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold text-sm text-zinc-800">

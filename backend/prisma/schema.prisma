@@ -87,3 +87,17 @@ model Wallpaper {
 
   @@map("wallpaper")
 }
+
+model About {
+  id              Int      @id @default(autoincrement())
+  greetingTitle   String   @default("你好") @db.VarChar(100)
+  greetingContent String   @default("欢迎来到 MemoryStory。") @db.Text
+  aboutTitle      String   @default("关于这个博客") @db.VarChar(100)
+  aboutContent    String   @default("从事软件开发，热爱技术与写作。") @db.Text
+  email           String?  @db.VarChar(255)
+  github          String?  @db.VarChar(255)
+  location        String?  @db.VarChar(100)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("about")
+}

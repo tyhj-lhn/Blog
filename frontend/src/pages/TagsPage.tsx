@@ -7,7 +7,7 @@ import type { Tag } from '../types';
 export default function TagsPage() {
   const { data: tags, isLoading, isError } = useQuery<Tag[]>({
     queryKey: ['tags'],
-    queryFn: () => api.get('/tags'),
+    queryFn: () => api.get<{ data: Tag[] }>('/tags').then(r => r.data),
   });
 
   return (
@@ -17,7 +17,7 @@ export default function TagsPage() {
       {isLoading && (
         <div className="flex flex-wrap gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-10 w-24 bg-zinc-100 rounded-full animate-pulse" />
+            <div key={i} className="h-10 w-24 bg-zinc-100/70 rounded-full animate-pulse" />
           ))}
         </div>
       )}
@@ -36,7 +36,7 @@ export default function TagsPage() {
             <Link
               key={tag.tag}
               to={`/search?q=${encodeURIComponent(tag.tag)}`}
-              className="inline-flex items-center gap-2 min-h-11 px-4 rounded-full border border-zinc-200 bg-white text-sm text-zinc-700 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
+              className="inline-flex items-center gap-2 min-h-11 px-5 rounded-full border border-zinc-200/70 bg-white text-sm text-zinc-700 shadow-soft hover:shadow-card hover:border-zinc-300/80 hover:text-blue-600 hover:bg-blue-50/70 transition-all duration-300 cursor-pointer"
             >
               <TagIcon size={14} />
               <span>{tag.tag}</span>

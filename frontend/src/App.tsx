@@ -21,6 +21,7 @@ import CommentManagement from './pages/admin/CommentManagement';
 import GuestbookManagement from './pages/admin/GuestbookManagement';
 import WallpaperAdmin from './pages/admin/WallpaperAdmin';
 import AdminProfile from './pages/admin/AdminProfile';
+import AboutEditor from './pages/admin/AboutEditor';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="/admin/comments" element={<CommentManagement />} />
         <Route path="/admin/guestbook" element={<GuestbookManagement />} />
         <Route path="/admin/wallpaper" element={<WallpaperAdmin />} />
+        <Route path="/admin/about" element={<AboutEditor />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
       </Route>
 

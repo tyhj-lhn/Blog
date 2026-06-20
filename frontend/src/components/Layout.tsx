@@ -1,13 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Home, Tag, MessageSquareText, Search, User } from 'lucide-react';
 
 const NAV_HIDE_THRESHOLD = 80;
 
 export default function Layout() {
+  const location = useLocation();
+  const isHome = location.pathname === '/';
+  const isHomeRef = useRef(isHome);
   const [navVisible, setNavVisible] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => !isHome || window.scrollY > 0);
   const lastScrollY = useRef(0);
+
+  // Keep ref in sync with isHome (not during render — satisfies react-hooks/refs)
+  useEffect(() => {
+    isHomeRef.current = isHome;
+  });
 
   useEffect(() => {
     let ticking = false;
@@ -19,7 +27,7 @@ export default function Layout() {
       requestAnimationFrame(() => {
         const currentY = window.scrollY;
 
-        setScrolled(currentY > 0);
+        setScrolled(isHomeRef.current ? currentY > 0 : true);
 
         if (currentY <= 0) {
           setNavVisible(true);
@@ -38,6 +46,17 @@ export default function Layout() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Non-home pages: always show glass nav. Home page: let scroll position decide.
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (!isHome) {
+        setScrolled(true);
+      } else if (window.scrollY <= 0) {
+        setScrolled(false);
+      }
+    });
+  }, [isHome]);
+
   return (
     <div className="min-h-screen bg-zinc-50 font-body text-zinc-950">
       <nav
@@ -51,7 +70,7 @@ export default function Layout() {
       >
         <Link
           to="/"
-          className={`font-heading text-2xl transition-colors ${
+          className={`font-logo text-2xl transition-colors ${
             scrolled ? 'text-zinc-900' : 'text-white hover:text-white/80'
           }`}
         >

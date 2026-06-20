@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   User,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/admin/comments', icon: MessageCircle, label: '评论管理' },
   { to: '/admin/guestbook', icon: BookOpen, label: '留言管理' },
   { to: '/admin/wallpaper', icon: Image, label: '背景壁纸' },
+  { to: '/admin/about', icon: Info, label: '关于我编辑' },
   { to: '/admin/profile', icon: Settings, label: '管理员设置' },
 ];
 

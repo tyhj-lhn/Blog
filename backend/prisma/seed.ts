@@ -112,6 +112,21 @@ PG 的 JSONB、全文搜索和递归 CTE 都是博客开发中很实用的功能
     },
   });
 
+  // ---------- About page content ----------
+  await prisma.about.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      greetingTitle: '你好',
+      greetingContent: '欢迎来到 MemoryStory，这是我的个人博客。在这里，我记录技术思考，分享生活感悟，整理学习笔记。',
+      aboutTitle: '关于这个博客',
+      aboutContent: '这个博客使用 React + TypeScript + Fastify + PostgreSQL 构建，采用瑞士现代主义设计风格（Swiss Modernism），追求简洁、清晰、克制的视觉表达。评论系统支持盖楼模式，欢迎在任何文章下留下你的想法。',
+      email: 'hello@example.com',
+      github: 'https://github.com',
+      location: 'Earth, Solar System',
+    },
+  });
+
   console.log('Seed completed!');
 }
 

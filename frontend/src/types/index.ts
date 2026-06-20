@@ -120,3 +120,15 @@ export interface UploadedFile {
   size: number;
   modifiedAt: string;
 }
+
+export interface AboutContent {
+  id: number;
+  greetingTitle: string;
+  greetingContent: string;
+  aboutTitle: string;
+  aboutContent: string;
+  email: string | null;
+  github: string | null;
+  location: string | null;
+  updatedAt: string;
+}

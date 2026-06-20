@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import { api } from '../lib/api';
-import type { PostSummary } from '../types';
+import type { PaginatedResponse, PostSummary } from '../types';
 import SearchBar from '../components/SearchBar';
 import { useDebounce } from '../hooks/useDebounce';
 import PostCard from '../components/PostCard';
@@ -26,7 +26,7 @@ export default function SearchPage() {
 
   const { data: results, isLoading, isError } = useQuery<PostSummary[]>({
     queryKey: ['search', query],
-    queryFn: () => api.get('/search', { q: query }),
+    queryFn: () => api.get<PaginatedResponse<PostSummary>>('/search', { q: query }).then(r => r.data),
     enabled: query.length > 0,
   });
 
@@ -53,7 +53,7 @@ export default function SearchPage() {
       {query && isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="border border-zinc-200 rounded-lg p-6 animate-pulse">
+            <div key={i} className="border border-zinc-200/70 rounded-2xl p-6 animate-pulse shadow-soft">
               <div className="h-6 bg-zinc-200 rounded w-1/3 mb-3" />
               <div className="h-4 bg-zinc-100 rounded w-full mb-2" />
               <div className="h-4 bg-zinc-100 rounded w-2/3" />

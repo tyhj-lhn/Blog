@@ -53,7 +53,9 @@ my_Blog/
 │       │   ├── auth.schema.ts      # Login + refresh
 │       │   ├── post.schema.ts      # Create/update post
 │       │   ├── comment.schema.ts   # Create comment
-│       │   └── guestbook.schema.ts # Create guestbook entry
+│       │   ├── guestbook.schema.ts # Create guestbook entry
+│       │   ├── wallpaper.schema.ts # Wallpaper type + url validation
+│       │   └── about.schema.ts     # About page content validation
 │       ├── middleware/
 │       │   ├── auth.ts             # authGuard (JWT verify) + adminGuard
 │       │   └── rate-limit.ts       # Presets: global 100/min, auth 5/min, guestbook 3/min
@@ -63,7 +65,8 @@ my_Blog/
 │           ├── comments.routes.ts  # GET threaded by postId, POST create, GET admin list, DELETE admin
 │           ├── tags.routes.ts      # GET all tags with counts ← unnest(tags)
 │           ├── guestbook.routes.ts # GET list, POST create, DELETE admin
-│           ├── wallpaper.routes.ts # GET public wallpaper, GET/PUT admin wallpaper
+│           ├── wallpaper.routes.ts # GET public wallpaper, GET/PUT/DELETE admin wallpaper
+│           ├── about.routes.ts     # GET public about, PUT admin upsert about
 │           ├── upload.routes.ts    # POST /api/admin/upload — JWT-guarded image upload
 │           └── admin.routes.ts     # GET stats (counts + recent posts/comments)
 ├── frontend/
@@ -112,6 +115,7 @@ my_Blog/
 │               ├── CommentManagement.tsx # Comment list, search, pagination, delete
 │               ├── GuestbookManagement.tsx # Guestbook list, pagination, delete
 │               ├── WallpaperAdmin.tsx    # Wallpaper type/URL + live preview
+│               ├── AboutEditor.tsx       # CMS editor for About page content
 │               └── AdminProfile.tsx      # Avatar, username, password management
 ```
 
@@ -205,6 +209,7 @@ my_Blog/
 | `/admin/comments` | CommentManagement | Auth required |
 | `/admin/guestbook` | GuestbookManagement | Auth required |
 | `/admin/wallpaper` | WallpaperAdmin | Auth required |
+| `/admin/about` | AboutEditor | Auth required |
 | `/admin/profile` | AdminProfile | Auth required |
 | `*` | → redirect / | — |
 
@@ -292,6 +297,21 @@ my_Blog/
 | url | String (500) | Image/Video URL |
 | updatedAt | DateTime | @updatedAt |
 
+### About
+| Field | Type | Notes |
+|-------|------|-------|
+| id | Int (auto) | PK |
+| greetingTitle | String (100) | Welcome heading |
+| greetingContent | Text (2000) | Welcome body |
+| aboutTitle | String (100) | About heading |
+| aboutContent | Text (5000) | About body |
+| email | String? (255) | Contact email |
+| github | String? (255) | GitHub URL |
+| location | String? (100) | Location text |
+| updatedAt | DateTime | @updatedAt |
+
+**Pattern:** Single-row table (upsert id=1) — always read/write the first row.
+
 ## API Routes
 
 ### Public (no auth)
@@ -304,6 +324,7 @@ my_Blog/
 | GET | `/api/guestbook` | Guestbook messages (paginated, newest first) |
 | GET | `/api/search?q=` | Full-text search posts by title/content (max 20 results) |
 | GET | `/api/wallpaper` | Current wallpaper (type + url, for homepage hero) |
+| GET | `/api/about` | About page content (single record) |
 | POST | `/api/comments` | Create comment. Body: `{content, postId, username, email?, websiteUrl?, parentId?}` |
 | POST | `/api/guestbook` | Create guestbook entry. Body: `{nickname, message}` |
 | POST | `/api/posts/:slug/toggle-like` | Toggle post like/unlike. Body: `{liked: boolean}` → `{likeCount}`. Atomic via `$transaction` |
@@ -331,6 +352,8 @@ my_Blog/
 | GET | `/api/admin/comments` | All comments (paginated, searchable by username/content) |
 | GET | `/api/admin/wallpaper` | Current wallpaper record |
 | PUT | `/api/admin/wallpaper` | Upsert wallpaper (type + url) |
+| GET | `/api/admin/about` | (covered by public route) |
+| PUT | `/api/admin/about` | Upsert about page content. Body: `{greetingTitle, greetingContent, aboutTitle, aboutContent, email?, github?, location?}` |
 
 ## Implementation Status
 
@@ -368,7 +391,7 @@ my_Blog/
 - [x] PostDetail page — content + comment tree (recursive, colored borders) + comment form
 - [x] TagsPage — tag cloud, links to /search?q=
 - [x] Guestbook — message list (paginated) + submit form
-- [x] About page — static, Lucide only, no emoji
+- [x] About page — CMS-driven, fetched from API with fallback defaults
 - [x] SearchPage — debounced search + PostCard results
 - [x] AdminLogin — login form → useAuth().login() → redirect
 - [x] AdminDashboard — 5 stats cards + recent posts/comments + logout
@@ -951,6 +974,54 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 | [index.css](frontend/src/index.css) | Caveat → Noto Serif SC |
 
 **验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (536KB JS, 46KB CSS)
+
+### ✅ Phase 4.11: 关于我页面 CMS 编辑 (2026-06-20)
+
+**目标:** 后台添加关于我页面内容编辑功能，替换前端硬编码文本为动态 API 数据。
+
+**数据库:**
+| 模型 | 详情 |
+|------|------|
+| `About` | 已存在（Phase 4.11 之前创建），单行 upsert 模式（id=1），8 个字段 |
+
+**Backend:**
+| 文件 | 变更 |
+|------|------|
+| [about.schema.ts](backend/src/schemas/about.schema.ts) | **新建** — Fastify JSON Schema：4 个必填字段（greetingTitle/Content, aboutTitle/Content 1-5000 字符）+ 3 个可选联系方式（email/github/location） |
+| [about.routes.ts](backend/src/routes/about.routes.ts) | **新建** — `GET /api/about`（公开，返回首条记录或 null）+ `PUT /api/admin/about`（authGuard + schema 校验，upsert id=1） |
+| [index.ts](backend/src/index.ts) | 注册 `aboutRoutes`（import + `fastify.register` with `/api` prefix） |
+| [seed.ts](backend/prisma/seed.ts) | 添加 `prisma.about.upsert` 默认数据 |
+
+**Frontend — 管理后台编辑页:**
+| 文件 | 变更 |
+|------|------|
+| [AboutEditor.tsx](frontend/src/pages/admin/AboutEditor.tsx) | **新建** — 三区块表单：欢迎语（标题+内容）、关于博客（标题+内容）、联系方式（邮箱/GitHub/位置）。TanStack Query 加载 + `useMutation` 保存，成功显示"已保存"绿色反馈，带字符计数 |
+
+**Frontend — 公开页面 API 化:**
+| 文件 | 变更 |
+|------|------|
+| [About.tsx](frontend/src/pages/About.tsx) | 硬编码 → `useQuery<AboutContent>` 拉取 `GET /api/about`，所有字段有 fallback 默认值，联系方式空时不渲染区块。绑定数据到标题/段落/链接，GitHub 链接自动补全 `https://` |
+| [App.tsx](frontend/src/App.tsx) | 新增 `/admin/about` 路由（ProtectedRoute 内）+ `AboutEditor` 导入 |
+| [AdminLayout.tsx](frontend/src/components/AdminLayout.tsx) | `NAV_ITEMS` 新增「关于我编辑」项（`Info` 图标，`/admin/about`） |
+| [types/index.ts](frontend/src/types/index.ts) | 新增 `AboutContent` 接口（id, greetingTitle, greetingContent, aboutTitle, aboutContent, email, github, location, updatedAt） |
+
+**About 数据模型字段:**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `greetingTitle` | String (100) | 欢迎语标题，如"你好" |
+| `greetingContent` | Text (2000) | 欢迎语正文 |
+| `aboutTitle` | String (100) | 关于标题，如"关于这个博客" |
+| `aboutContent` | Text (5000) | 关于正文 |
+| `email` | String? (255) | 联系邮箱 |
+| `github` | String? (255) | GitHub 链接 |
+| `location` | String? (100) | 位置信息 |
+
+**CMS 编辑流程:**
+1. 管理员访问 `/admin/about` → `GET /api/about` 加载已有数据填充表单
+2. 编辑任意字段 → 点击「保存」→ `PUT /api/admin/about`（JWT 认证 + JSON Schema 校验）
+3. 公开 `/about` 页面 → `GET /api/about` 获取最新内容并渲染
+
+**验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (547KB JS, 51KB CSS)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

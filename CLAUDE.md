@@ -99,6 +99,7 @@ my_Blog/
 │       │   ├── CoverImageUpload.tsx # 拖拽图片上传组件 (替换URL输入)
 │       │   ├── MarkdownToolbar.tsx # 12按钮Markdown格式工具栏
 │       │   ├── PostPreview.tsx     # 发布预览 (模拟PostDetail外观)
+│       │   ├── Footer.tsx          # 首页页脚 — 版权 + 免责声明 + ICP备案
 │       │   └── ...                 # PostCard, CommentTree, CommentForm, etc.
 │       └── pages/
 │           ├── Home.tsx            # Hero (video + API wallpaper) + post grid
@@ -1022,6 +1023,26 @@ coverImage: { type: ['string', 'null'], maxLength: 500 }
 3. 公开 `/about` 页面 → `GET /api/about` 获取最新内容并渲染
 
 **验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓ (547KB JS, 51KB CSS)
+
+### ✅ Phase 4.12: 首页页脚 — 备案 & 免责声明 (2026-06-20)
+
+**目标:** 为备案上架做准备，在首页最底部添加页脚，包含版权声明、免责声明和 ICP 备案号。
+
+**新组件:**
+| 组件 | 用途 |
+|------|------|
+| [Footer.tsx](frontend/src/components/Footer.tsx) | 深色页脚（`bg-zinc-900`），三栏布局：左（品牌 + © 年份）、中（`ShieldAlert` 图标 + 免责声明）、右（ICP 备案号 + 工信部链接） |
+
+**集成:**
+| 文件 | 变更 |
+|------|------|
+| [Home.tsx](frontend/src/pages/Home.tsx) | 导入 `Footer`，在标签侧边栏区域结束后、页面最底部渲染 |
+
+**免责声明内容:** "本站为个人博客，所有文章仅代表作者个人观点，与任何机构无关。转载文章版权归原作者所有，如有侵权请联系删除。"
+
+**ICP:** 备案号当前标记为 `待备案`，拿到后替换 [Footer.tsx:34](frontend/src/components/Footer.tsx#L34) 中的文本即可。
+
+**验证:** tsc ✓ · ESLint 0 ✓
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

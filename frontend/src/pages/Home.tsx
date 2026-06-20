@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import type { PaginatedResponse, PostSummary, Tag } from '../types';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
+import Footer from '../components/Footer';
 import heroVideo from '../../images/Suvan_2k_02b29.mp4';
 
 const PAGE_LIMIT = 6;
@@ -141,7 +142,11 @@ export default function Home() {
     video.muted = !video.muted;
     setMuted(video.muted);
     if (!video.muted && video.paused) {
-      video.play().catch(() => {});
+      video.play().catch(() => {
+        // Revert mute state if playback failed (e.g., autoplay policy)
+        video.muted = true;
+        setMuted(true);
+      });
     }
   }, []);
 
@@ -256,7 +261,7 @@ export default function Home() {
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div
                       key={i}
-                      className="border border-zinc-200/70 rounded-2xl overflow-hidden shadow-card animate-pulse"
+                      className="border border-zinc-200/70 rounded-2xl overflow-hidden animate-pulse"
                     >
                       <div className="aspect-video bg-zinc-200" />
                       <div className="p-6">
@@ -356,6 +361,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }

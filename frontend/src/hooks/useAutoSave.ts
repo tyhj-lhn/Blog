@@ -21,11 +21,13 @@ function loadDraft(draftKey: string): DraftData | null {
   }
 }
 
-function saveDraft(draftKey: string, data: DraftData): void {
+function saveDraft(draftKey: string, data: DraftData): boolean {
   try {
     localStorage.setItem(DRAFT_PREFIX + draftKey, JSON.stringify(data));
+    return true;
   } catch {
-    // localStorage full or disabled — silently ignore
+    // localStorage full or disabled
+    return false;
   }
 }
 
@@ -40,6 +42,7 @@ export function useAutoSave(
 ) {
   const [savedDraft, setSavedDraft] = useState<DraftData | null>(null);
   const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+  const [draftSaveError, setDraftSaveError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Check for saved draft on mount
@@ -59,7 +62,10 @@ export function useAutoSave(
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      saveDraft(draftKey, data);
+      const ok = saveDraft(draftKey, data);
+      if (!ok) {
+        setDraftSaveError(true);
+      }
     }, 2000);
 
     return () => {
@@ -97,5 +103,7 @@ export function useAutoSave(
     setShowRestoreBanner(false);
   }, [draftKey]);
 
-  return { savedDraft, showRestoreBanner, restoreDraft, discardDraft, onSaveSuccess };
+  const clearDraftSaveError = useCallback(() => setDraftSaveError(false), []);
+
+  return { savedDraft, showRestoreBanner, draftSaveError, restoreDraft, discardDraft, onSaveSuccess, clearDraftSaveError };
 }

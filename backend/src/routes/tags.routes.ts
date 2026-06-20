@@ -3,7 +3,7 @@ import prisma from '../lib/prisma.js';
 
 interface TagRow {
   tag: string;
-  count: bigint;
+  count: number;
 }
 
 export default async function tagsRoutes(fastify: FastifyInstance): Promise<void> {
@@ -15,7 +15,7 @@ export default async function tagsRoutes(fastify: FastifyInstance): Promise<void
     );
 
     return {
-      data: rows.map((r) => ({ tag: r.tag, count: Number(r.count) })),
+      data: rows.map((r) => ({ tag: r.tag, count: r.count })),
     };
   });
 }

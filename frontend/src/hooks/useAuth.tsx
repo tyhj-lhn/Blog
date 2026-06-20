@@ -11,12 +11,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Rehydrate user state on mount if token exists
   useEffect(() => {
     if (isAuthenticated()) {
-      api.get<User>('/auth/me')
+      const controller = new AbortController();
+      // 10-second timeout — if server is unreachable, treat as auth failure
+      const timer = setTimeout(() => controller.abort(), 10_000);
+
+      api.get<User>('/auth/me', undefined, { signal: controller.signal })
         .then((u) => { setUser(u); })
         .catch(() => {
           clearTokens();
         })
-        .finally(() => { setLoading(false); });
+        .finally(() => {
+          clearTimeout(timer);
+          setLoading(false);
+        });
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);

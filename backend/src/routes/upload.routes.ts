@@ -4,7 +4,7 @@ import { createWriteStream, mkdirSync } from 'node:fs';
 import { readdir, stat, unlink } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { join, extname } from 'node:path';
-import { authGuard } from '../middleware/auth.js';
+import { authGuard, adminGuard } from '../middleware/auth.js';
 
 const UPLOADS_DIR = join(import.meta.dirname, '../../uploads');
 // Ensure the uploads directory exists (Node.js createWriteStream doesn't auto-create dirs)
@@ -23,7 +23,7 @@ function extToType(ext: string): 'image' | 'video' | null {
 export default async function uploadRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/admin/upload — upload image/video file
   fastify.post('/admin/upload', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
   }, async (request, reply) => {
     const data = await request.file();
 
@@ -56,7 +56,7 @@ export default async function uploadRoutes(fastify: FastifyInstance): Promise<vo
 
   // GET /api/admin/uploads — list all uploaded files
   fastify.get('/admin/uploads', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
   }, async (request, reply) => {
     try {
       const dirents = await readdir(UPLOADS_DIR, { withFileTypes: true });
@@ -94,7 +94,7 @@ export default async function uploadRoutes(fastify: FastifyInstance): Promise<vo
 
   // DELETE /api/admin/uploads/:filename — delete an uploaded file
   fastify.delete('/admin/uploads/:filename', {
-    preHandler: [authGuard],
+    preHandler: [authGuard, adminGuard],
   }, async (request, reply) => {
     const { filename } = request.params as { filename: string };
 

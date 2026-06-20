@@ -79,8 +79,8 @@ export default async function commentsRoutes(fastify: FastifyInstance): Promise<
         content: sanitizeContent(body.content),
         postId: body.postId,
         username: sanitizeContent(body.username),
-        email: body.email?.trim() ?? null,
-        websiteUrl: body.websiteUrl?.trim() ?? null,
+        email: body.email ? sanitizeContent(body.email.trim()) : null,
+        websiteUrl: body.websiteUrl ? sanitizeContent(body.websiteUrl.trim()) : null,
         parentId: body.parentId ?? null,
       },
     });

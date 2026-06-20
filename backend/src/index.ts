@@ -38,7 +38,19 @@ export function buildApp() {
     credentials: true,
   });
 
-  fastify.register(helmet, { contentSecurityPolicy: false });
+  fastify.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        mediaSrc: ["'self'", 'blob:'],
+        connectSrc: ["'self'"],
+      },
+    },
+  });
 
   fastify.register(rateLimit, rateLimitPresets.global);
 

@@ -102,9 +102,9 @@ async function uploadRequest<T>(url: string, formData: FormData): Promise<T> {
 }
 
 export const api = {
-  get<T>(url: string, params?: Record<string, string | number>): Promise<T> {
+  get<T>(url: string, params?: Record<string, string | number>, options?: RequestInit): Promise<T> {
     const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
-    return request<T>(`${url}${qs}`);
+    return request<T>(`${url}${qs}`, options);
   },
 
   post<T>(url: string, body?: unknown): Promise<T> {

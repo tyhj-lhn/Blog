@@ -1,3 +1,4 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,6 +12,8 @@ import {
   Settings,
   User,
   Info,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -29,6 +32,38 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change (mobile).
+  // Refs in render is intentional: reads last pathname to detect navigation, resets sidebar.
+  const prevPath = useRef(location.pathname);
+  // eslint-disable-next-line react-hooks/refs
+  if (prevPath.current !== location.pathname) {
+    // eslint-disable-next-line react-hooks/refs
+    prevPath.current = location.pathname;
+    if (sidebarOpen) setSidebarOpen(false);
+  }
+
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const handleLogout = () => {
     logout();
@@ -37,12 +72,37 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen flex">
+      {/* Mobile overlay backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-zinc-900 text-zinc-100 flex flex-col z-40">
-        {/* Brand */}
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-64 bg-zinc-900 text-zinc-100 flex flex-col z-50 transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Mobile close button */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800 lg:hidden">
+          <span className="font-heading text-xl tracking-wide">MemoryStory</span>
+          <button
+            onClick={closeSidebar}
+            className="min-w-11 min-h-11 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            aria-label="关闭菜单"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Brand (desktop only) */}
         <Link
           to="/"
-          className="block px-6 py-5 border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors duration-200"
+          className="hidden lg:block px-6 py-5 border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors duration-200"
         >
           <span className="font-heading text-xl tracking-wide">MemoryStory</span>
           <span className="ml-2 text-xs text-zinc-500">管理</span>
@@ -119,8 +179,20 @@ export default function AdminLayout() {
         </div>
       </aside>
 
+      {/* Mobile top bar with hamburger */}
+      <div className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-zinc-200 flex items-center px-4 z-30 lg:hidden">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="min-w-11 min-h-11 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer"
+          aria-label="打开菜单"
+        >
+          <Menu size={20} />
+        </button>
+        <span className="ml-3 font-heading text-lg text-zinc-900">MemoryStory</span>
+      </div>
+
       {/* Main content */}
-      <main className="ml-64 flex-1 min-h-screen bg-zinc-50">
+      <main className="flex-1 min-h-screen bg-zinc-50 lg:ml-64 pt-14 lg:pt-0">
         <Outlet />
       </main>
     </div>

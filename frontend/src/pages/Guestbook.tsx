@@ -83,7 +83,7 @@ export default function Guestbook() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="写下你想说的话..."
-          maxLength={10000}
+          maxLength={5000}
           required
           rows={3}
           className="w-full min-h-11 px-4 py-2 rounded-xl border border-zinc-200/70 bg-white text-sm placeholder:text-zinc-400 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-transparent transition-all duration-200"
@@ -103,7 +103,7 @@ export default function Guestbook() {
       {isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="border border-zinc-200/70 rounded-2xl p-4 animate-pulse shadow-soft">
+            <div key={i} className="border border-zinc-200/70 rounded-2xl p-4 animate-pulse">
               <div className="h-4 bg-zinc-100 rounded w-1/4 mb-2" />
               <div className="h-4 bg-zinc-50 rounded w-3/4" />
             </div>

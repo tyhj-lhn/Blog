@@ -53,7 +53,7 @@ export default function SearchPage() {
       {query && isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="border border-zinc-200/70 rounded-2xl p-6 animate-pulse shadow-soft">
+            <div key={i} className="border border-zinc-200/70 rounded-2xl p-6 animate-pulse">
               <div className="h-6 bg-zinc-200 rounded w-1/3 mb-3" />
               <div className="h-4 bg-zinc-100 rounded w-full mb-2" />
               <div className="h-4 bg-zinc-100 rounded w-2/3" />

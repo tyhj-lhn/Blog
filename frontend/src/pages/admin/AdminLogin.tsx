@@ -1,15 +1,20 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function AdminLogin() {
-  const { login } = useAuth();
+  const { login, isAuth, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading_, setLoading_] = useState(false);
+
+  // Redirect to dashboard if already authenticated
+  if (!loading && isAuth) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +25,7 @@ export default function AdminLogin() {
       return;
     }
 
-    setLoading(true);
+    setLoading_(true);
     try {
       await login(email.trim(), password);
       const returnUrl = searchParams.get('returnUrl');
@@ -28,7 +33,7 @@ export default function AdminLogin() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {
-      setLoading(false);
+      setLoading_(false);
     }
   };
 
@@ -72,10 +77,10 @@ export default function AdminLogin() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading_}
             className="w-full min-h-11 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
           >
-            {loading ? '登录中...' : '登录'}
+            {loading_ ? '登录中...' : '登录'}
           </button>
         </form>
         <p className="mt-6 text-center">

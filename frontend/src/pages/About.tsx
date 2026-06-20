@@ -4,10 +4,21 @@ import { api } from '../lib/api';
 import type { AboutContent } from '../types';
 
 export default function About() {
-  const { data, isLoading } = useQuery<AboutContent | null>({
+  const { data, isLoading, isError } = useQuery<AboutContent | null>({
     queryKey: ['about'],
     queryFn: () => api.get('/about'),
   });
+
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="font-heading text-4xl text-zinc-900 mb-8">关于我</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+          无法加载关于页面内容，请稍后重试。
+        </div>
+      </div>
+    );
+  }
 
   // Fallback values when no CMS data exists
   const greetingTitle = data?.greetingTitle || '你好';

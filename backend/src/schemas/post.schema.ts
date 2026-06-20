@@ -10,6 +10,7 @@ export const createPostSchema = {
     content: {
       type: 'string',
       minLength: 1,
+      maxLength: 100000,
     },
     excerpt: {
       type: ['string', 'null'],
@@ -43,6 +44,7 @@ export const updatePostSchema = {
     content: {
       type: 'string',
       minLength: 1,
+      maxLength: 100000,
     },
     excerpt: {
       type: ['string', 'null'],

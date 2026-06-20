@@ -43,6 +43,16 @@ export function useLikePost({
 
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [likePending, setLikePending] = useState(false);
+
+  // Sync when the authoritative value changes (e.g., post data arrives late, cross-page invalidation).
+  // Refs in render here is a standard derived-state pattern — resets local count when prop changes.
+  const prevInitialRef = useRef(initialLikeCount);
+  // eslint-disable-next-line react-hooks/refs
+  if (prevInitialRef.current !== initialLikeCount) {
+    // eslint-disable-next-line react-hooks/refs
+    prevInitialRef.current = initialLikeCount;
+    setLikeCount(initialLikeCount);
+  }
   const mountedRef = useRef(true);
 
   useEffect(() => {

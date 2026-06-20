@@ -37,7 +37,7 @@ export default function PostEditor() {
     title, content, excerpt, coverImage, tags, status,
   }), [title, content, excerpt, coverImage, tags, status]);
 
-  const { savedDraft, showRestoreBanner, restoreDraft, discardDraft, onSaveSuccess } = useAutoSave(
+  const { savedDraft, showRestoreBanner, draftSaveError, restoreDraft, discardDraft, onSaveSuccess, clearDraftSaveError } = useAutoSave(
     draftKey,
     draftData,
     isDirty && !isEdit,
@@ -102,6 +102,7 @@ export default function PostEditor() {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
       if (post.status === 'DRAFT') {
         // Stay on page — navigate to edit mode for this draft
         navigate(`/admin/posts/${post.id}/edit`, { replace: true });
@@ -119,6 +120,7 @@ export default function PostEditor() {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
       if (post.status === 'DRAFT') {
         // Stay on the current edit page
         setError(null);
@@ -263,6 +265,22 @@ export default function PostEditor() {
           </button>
         )}
       </div>
+
+      {/* Draft save error banner */}
+      {draftSaveError && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertTriangle size={16} />
+            <span>草稿无法保存 — 存储空间可能已满或浏览器限制</span>
+          </div>
+          <button
+            onClick={() => clearDraftSaveError()}
+            className="min-h-9 px-3 rounded-lg border border-red-300 text-red-600 text-sm hover:bg-red-100 transition-colors cursor-pointer"
+          >
+            忽略
+          </button>
+        </div>
+      )}
 
       {/* Draft restore banner */}
       {showRestoreBanner && savedDraft && (

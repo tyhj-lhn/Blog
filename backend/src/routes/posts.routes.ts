@@ -82,7 +82,9 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     prisma.post.updateMany({
       where: { slug, status: 'PUBLISHED' },
       data: { viewCount: { increment: 1 } },
-    }).catch(() => {});
+    }).catch((err) => {
+      request.log.warn(err, 'Failed to increment viewCount for slug=%s', slug);
+    });
 
     return post;
   });

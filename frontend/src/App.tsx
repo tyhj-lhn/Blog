@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -24,6 +24,19 @@ import AdminProfile from './pages/admin/AdminProfile';
 import AboutEditor from './pages/admin/AboutEditor';
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      // Only log background refetch failures — initial load errors are handled by components via isError
+      if (query.state.data !== undefined) {
+        console.error('[QueryCache] Background refetch failed:', error instanceof Error ? error.message : error);
+      }
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      console.error('[MutationCache] Mutation failed:', error instanceof Error ? error.message : error);
+    },
+  }),
   defaultOptions: {
     queries: { staleTime: 30_000, retry: 1 },
   },

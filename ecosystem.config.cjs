@@ -23,8 +23,10 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       // Restart policy
-      max_restarts: 10,
-      max_memory_restart: '300M',
+      max_restarts: 50,
+      min_uptime: '10s',
+      restart_delay: 5000,
+      max_memory_restart: '500M',
       // Graceful shutdown
       kill_timeout: 5000,
       wait_ready: true,

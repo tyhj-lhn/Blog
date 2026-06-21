@@ -79,12 +79,17 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
     if (!post || post.status !== 'PUBLISHED') throw notFound('Post');
 
     // fire-and-forget viewCount increment
-    prisma.post.updateMany({
-      where: { slug, status: 'PUBLISHED' },
-      data: { viewCount: { increment: 1 } },
-    }).catch((err) => {
-      request.log.warn(err, 'Failed to increment viewCount for slug=%s', slug);
-    });
+    // Uses fastify.log (route-scoped) instead of request.log (may be GC'd) to ensure safe error logging
+    void (async () => {
+      try {
+        await prisma.post.updateMany({
+          where: { slug, status: 'PUBLISHED' },
+          data: { viewCount: { increment: 1 } },
+        });
+      } catch (err) {
+        fastify.log.warn({ err }, 'Failed to increment viewCount for slug=%s', slug);
+      }
+    })();
 
     return post;
   });

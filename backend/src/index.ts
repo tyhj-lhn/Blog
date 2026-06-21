@@ -13,6 +13,46 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// ---- Global error handlers (must be set before any async work) ----
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION — process will exit:', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+  });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  // Log but do NOT exit — unhandled rejections are often transient
+  // (e.g. Prisma internal connection cleanup)
+  console.error('UNHANDLED REJECTION:', {
+    type: reason instanceof Error ? 'Error' : typeof reason,
+    name: reason instanceof Error ? reason.name : undefined,
+    message: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+// PM2 sends SIGINT for graceful shutdown
+let isShuttingDown = false;
+process.on('SIGINT', async () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log('SIGINT received — graceful shutdown in progress');
+  await prisma.$disconnect().catch(() => {});
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log('SIGTERM received — graceful shutdown in progress');
+  await prisma.$disconnect().catch(() => {});
+  process.exit(0);
+});
+
 import authRoutes from './routes/auth.routes.js';
 import guestbookRoutes from './routes/guestbook.routes.js';
 import postsRoutes from './routes/posts.routes.js';
@@ -77,6 +117,7 @@ export function buildApp() {
   // ---- Error handler ----
   fastify.setErrorHandler((error: unknown, request, reply) => {
     if (error instanceof AppError) {
+      request.log.warn({ code: error.code, statusCode: error.statusCode }, error.message);
       return reply.status(error.statusCode).send({
         error: { code: error.code, message: error.message },
       });
@@ -84,6 +125,7 @@ export function buildApp() {
 
     const err = error as { validation?: unknown; message?: string; statusCode?: number; code?: string };
     if (err.validation) {
+      request.log.warn({ validation: true }, err.message ?? 'Validation failed');
       return reply.status(400).send({
         error: {
           code: 'VALIDATION_ERROR',
@@ -95,6 +137,7 @@ export function buildApp() {
 
     // Handle Fastify framework errors that carry their own statusCode
     if (err.statusCode) {
+      request.log.warn({ statusCode: err.statusCode, code: err.code }, err.message ?? 'Request error');
       return reply.status(err.statusCode).send({
         error: { code: err.code ?? 'REQUEST_ERROR', message: err.message ?? 'Request error' },
       });
@@ -118,7 +161,30 @@ const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWit
 if (isMain) {
   try {
     const app = buildApp();
+
+    // Proactive database connection with retry
+    // Avoids lazy-connect-on-first-request which can fail silently
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await prisma.$connect();
+        app.log.info('Database connected');
+        break;
+      } catch (dbErr) {
+        app.log.error({ attempt, err: dbErr }, 'Database connection attempt failed');
+        if (attempt === 2) {
+          console.error('FATAL: Could not connect to database after 2 attempts');
+          process.exit(1);
+        }
+        await new Promise((r) => setTimeout(r, 3000)); // 3s delay before retry
+      }
+    }
+
     await app.listen({ port: Number(process.env.PORT) || 3001, host: process.env.HOST || '0.0.0.0' });
+
+    // Signal PM2 that the app is ready (matches wait_ready: true in ecosystem.config.cjs)
+    if (typeof process.send === 'function') {
+      process.send('ready');
+    }
   } catch (err) {
     console.error('FATAL: Failed to start server:', err instanceof Error ? err.message : err);
     process.exit(1);

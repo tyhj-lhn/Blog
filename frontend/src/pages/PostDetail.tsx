@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
@@ -47,12 +48,15 @@ export default function PostDetail() {
   const {
     data: comments = [],
     isLoading: commentsLoading,
+    isError: commentsError,
   } = useQuery<Comment[]>({
     queryKey: ['comments', post?.id],
     queryFn: () =>
       api.get<{ data: Comment[] }>(`/comments/${post!.id}`).then((r) => r.data),
     enabled: !!post?.id,
   });
+
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const submitComment = useMutation({
     mutationFn: (data: {
@@ -67,6 +71,7 @@ export default function PostDetail() {
         postId: post!.id,
       }),
     onMutate: async () => {
+      setSubmitError(null); // Clear previous error on new submission
       // Cancel any outgoing post refetch so it doesn't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ['post', slug] });
       const previous = queryClient.getQueryData<Post>(['post', slug]);
@@ -83,6 +88,7 @@ export default function PostDetail() {
       if (context?.previous) {
         queryClient.setQueryData(['post', slug], context.previous);
       }
+      setSubmitError('评论提交失败，请稍后重试');
     },
     onSettled: () => {
       // Refetch both post (for authoritative _count.comments) and comments
@@ -222,6 +228,9 @@ export default function PostDetail() {
                   await submitComment.mutateAsync(data);
                 }}
               />
+              {submitError && (
+                <p className="text-red-500 text-sm mt-2">{submitError}</p>
+              )}
             </div>
 
             {commentsLoading ? (
@@ -233,6 +242,8 @@ export default function PostDetail() {
                   </div>
                 ))}
               </div>
+            ) : commentsError ? (
+              <p className="text-zinc-500 text-center py-6">评论加载失败</p>
             ) : (
               <CommentTree
                 comments={comments}

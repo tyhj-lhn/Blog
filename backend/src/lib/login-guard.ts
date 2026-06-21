@@ -27,19 +27,24 @@ let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 function startCleanup(): void {
   if (cleanupTimer) return;
   cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [email, entry] of attempts) {
-      if (now - entry.firstFailure > WINDOW_MS && entry.lockedUntil === null) {
-        attempts.delete(email);
+    try {
+      const now = Date.now();
+      for (const [email, entry] of attempts) {
+        if (now - entry.firstFailure > WINDOW_MS && entry.lockedUntil === null) {
+          attempts.delete(email);
+        }
+        if (entry.lockedUntil !== null && now > entry.lockedUntil) {
+          attempts.delete(email);
+        }
       }
-      if (entry.lockedUntil !== null && now > entry.lockedUntil) {
-        attempts.delete(email);
+      // Stop the timer if the map is empty
+      if (attempts.size === 0 && cleanupTimer) {
+        clearInterval(cleanupTimer);
+        cleanupTimer = null;
       }
-    }
-    // Stop the timer if the map is empty
-    if (attempts.size === 0 && cleanupTimer) {
-      clearInterval(cleanupTimer);
-      cleanupTimer = null;
+    } catch (err) {
+      // Non-fatal: cleanup errors should not crash the process
+      console.error('[login-guard] Cleanup loop error:', err instanceof Error ? err.message : err);
     }
   }, CLEANUP_INTERVAL_MS).unref();
 }

@@ -151,7 +151,7 @@ export default function Home() {
   }, []);
 
   // Fetch tags for sidebar
-  const { data: tags } = useQuery<Tag[]>({
+  const { data: tags, isError: tagsError } = useQuery<Tag[]>({
     queryKey: ['tags'],
     queryFn: () => api.get<{ data: Tag[] }>('/tags').then(r => r.data),
   });
@@ -308,7 +308,11 @@ export default function Home() {
                   标签
                 </h3>
 
-                {!tags && (
+                {tagsError && (
+                  <p className="text-sm text-zinc-400">标签加载失败</p>
+                )}
+
+                {!tags && !tagsError && (
                   <div className="flex flex-wrap gap-2">
                     {SKELETON_WIDTHS.map((w, i) => (
                       <div

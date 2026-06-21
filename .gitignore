@@ -68,5 +68,8 @@ env/
 # ===== Uploads =====
 backend/uploads/
 
+# ===== Deployment (generated at deploy time, contains secrets) =====
+ecosystem.production.config.cjs
+
 # ===== Misc =====
 *.bak

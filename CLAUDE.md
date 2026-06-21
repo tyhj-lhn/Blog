@@ -3,14 +3,14 @@
 ## Project Overview
 Personal blog website with threaded comments (盖楼), Swiss Modernism design, hidden admin access.
 - **Frontend**: React 19.2 + TypeScript 6.0 + Vite 8.0 + Tailwind CSS 4.3
-- **Backend**: Fastify 5.3 + TypeScript 5.7 + Prisma 6.6 + PostgreSQL 17 (Docker)
+- **Backend**: Fastify 5.3 + TypeScript 5.7 + Prisma 6.6 + PostgreSQL 17
 - **Auth**: JWT dual-token (access 15min + refresh 7d), bcryptjs cost 12
 - **Security**: No public login link; admin only via `/admin` URL path
 
 ## Commands
 ```bash
 # Infrastructure
-docker-compose up -d                                         # PostgreSQL 17 on :5432
+# PostgreSQL 17 via setup-server.sh (or run separately)
 
 # Backend (cd backend/)
 npx prisma migrate dev                                      # Apply migrations
@@ -25,21 +25,22 @@ npm run dev                                                 # Vite on :5173
 npm run build                                               # tsc + vite build → dist/
 npm run lint                                                # ESLint
 
-# Deployment (production server, as root)
+# Deployment — 阿里云服务器 (as root)
 bash setup-server.sh                                        # Step 1: 一次性环境安装（Node.js, PG, Nginx, PM2, ufw）
 bash deploy-app.sh                                          # Step 2: 网站部署（克隆→构建→启动，可重复运行更新）
 bash deploy-app.sh --dry-run                                # 干运行（仅检查前置条件）
 bash deploy-app.sh --yes --git-repo ... --db-password ...   # 非交互式 (CI/CD)
+# 详见 ALIYUN.md 阿里云部署指南
 ```
 
 ## Architecture
 ```
 my_Blog/
-├── docker-compose.yml              # PostgreSQL 17-alpine
 ├── .env.example                    # Template for .env
 ├── ecosystem.config.cjs            # PM2 config (local dev reference)
 ├── setup-server.sh                 # 服务器环境部署脚本 (6步，一次性)
 ├── deploy-app.sh                   # 网站部署脚本 (8步，可重复运行更新)
+├── ALIYUN.md                       # 阿里云部署指南
 ├── backend/
 │   ├── package.json
 │   ├── tsconfig.json
@@ -368,7 +369,7 @@ my_Blog/
 ## Implementation Status
 
 ### ✅ Phase 1: Scaffolding (Complete)
-- Docker PostgreSQL 17 running
+- PostgreSQL 17 running (via setup-server.sh)
 - Backend: Fastify + Prisma + TypeScript + all npm scripts
 - Frontend: Vite + React + Tailwind v4 + all dependencies + ESLint
 - `.env.example` and project configs
@@ -1138,6 +1139,42 @@ try {
 
 **验证:** `bash -n setup-server.sh && bash -n deploy-app.sh` ✓ (syntax OK)
 
+### ✅ Phase 4.15: Production Readiness Audit (2026-06-21)
+
+模拟 Ubuntu 生产环境，对后端核心文件进行了全量审查 + `NODE_ENV=production` 实际启动测试。
+
+**验证通过项:**
+
+| 检查项 | 结果 |
+|--------|------|
+| `tsc --noEmit` 类型检查 | ✅ 零错误 |
+| 生产启动 — 弱密钥拒绝 (`validateSecrets`) | ✅ 正确抛出 FATAL |
+| 生产启动 — DB 连接重试 (2次, 3s 间隔) | ✅ 正常 |
+| 全局异常处理器 (`uncaughtException` / `unhandledRejection`) | ✅ 已就位 |
+| SIGINT / SIGTERM 优雅关闭 (防重入 `isShuttingDown`) | ✅ 正确 |
+| `authGuard` + `adminGuard` preHandler 链 | ✅ 异常正确冒泡 |
+| 渐进式登录锁定 (5→15min, 10→1h) | ✅ 正确 |
+| XSS 过滤 (`xss` 空白名单) | ✅ 全量过滤 |
+| 文件上传安全 (MIME + 扩展名校验 + UUID + 路径遍历防护) | ✅ 正确 |
+| Nginx SPA 配置 (try_files + API 反代 + gzip) | ✅ 正确 |
+| Prisma onClose hook | ✅ 已注册 |
+| PM2 `wait_ready: true` + `process.send('ready')` | ✅ 正确 |
+
+**已知问题 (Known Issues):**
+
+| # | 严重度 | 问题 | 说明 |
+|---|--------|------|------|
+| 1 | LOW | `buildApp()` 未 async | 9 处 `fastify.register()` 未 await。插件初始化错误会推迟到 `listen()` 时集中暴露，难以定位。当前实际运行无影响，但建议改为 `async function buildApp()` + `await fastify.register(...)` |
+| 2 | NOTE | 缺少 HTTP 健康检查端点 | 无 `GET /api/health`。当前依赖 PM2 `wait_ready` + `process.send('ready')`，但 Nginx healthcheck 无法通过 HTTP 判断后端就绪状态 |
+| 3 | NOTE | `unhandledRejection` 仅记录不退出 | 日志后继续运行是 Node.js 22 默认行为，但长期运行可能因泄漏的 Promise 引用导致内存累积 |
+| 4 | NOTE | Prisma 双重 disconnect | SIGINT/SIGTERM handler 和 `onClose` hook 都会调用 `$disconnect()`。幂等无害但 `onClose` 中的调用无 `.catch()` 保护，理论极端场景下可能阻塞关闭流程 |
+| 5 | NOTE | `ecosystem.config.cjs` Windows 路径 | `interpreter: 'D:/Program Files/nodejs/node.exe'` — 仅在 Windows 本地开发有效。生产部署由 `deploy-app.sh` 生成 `ecosystem.production.config.cjs`，不受影响 |
+| 6 | NOTE | `tsconfig.json` moduleResolution | 使用 `"bundler"` 而非 `"node16"` / `"nodenext"`，是为兼容 ESM `.js` 扩展名导入的折中方案。功能正常但语义不准确 |
+
+**⚠️ 部署前必须确认:**
+- `npm run build` (tsc) 重新编译后再部署 — dist 必须与源码同步，否则生产环境缺失 Phase 4.13+ 的崩溃防护代码
+- JWT secrets 已替换为 `openssl rand -base64 64` 强随机值
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)
@@ -1192,6 +1229,7 @@ pm2 resurrect                               # Restore saved list
 ```
 
 **Cloud Deployment Notes:**
+- 部署至阿里云 ECS（Ubuntu 22.04），详见 [ALIYUN.md](ALIYUN.md) 阿里云部署指南
 - `deploy-app.sh` generates `ecosystem.production.config.cjs` with actual secrets from `backend/.env` — no manual config needed
 - JWT secrets must be cryptographically strong (use `openssl rand -base64 64`) or `validateSecrets()` throws in production
 - `NODE_ENV=production` triggers strict secret validation, `logger.level='warn'`

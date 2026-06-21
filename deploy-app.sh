@@ -626,11 +626,12 @@ EOF
         sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=${cors_origin}|" "$env_file"
         sed -i "s|^BCRYPT_SALT_ROUNDS=.*|BCRYPT_SALT_ROUNDS=12|" "$env_file"
 
-        # 移除 docker-compose 专用变量
+        # 移除 docker-compose 专用变量 & 非生产变量
         sed -i '/^POSTGRES_USER=/d' "$env_file"
         sed -i '/^POSTGRES_PASSWORD=/d' "$env_file"
         sed -i '/^POSTGRES_DB=/d' "$env_file"
         sed -i '/^DB_PORT=/d' "$env_file"
+        sed -i '/^FRONTEND_PORT=/d' "$env_file"
 
         chmod 600 "$env_file"
     fi
@@ -664,11 +665,14 @@ step_backend_build() {
         fi
     fi
 
-    info "将执行: npm install → prisma migrate → prisma seed → tsc → npm prune"
+    info "将执行: npm install → prisma generate → prisma migrate → prisma seed → tsc → npm prune"
     confirm "继续？" || { warn "已跳过。"; return 0; }
 
     run_cmd "安装依赖" \
         bash -c "cd '$PROJECT_DIR/backend' && npm install"
+
+    run_cmd "生成 Prisma Client (关键 — 确保引擎二进制匹配当前平台)" \
+        bash -c "cd '$PROJECT_DIR/backend' && npx prisma generate"
 
     run_cmd "运行数据库迁移" \
         bash -c "cd '$PROJECT_DIR/backend' && npx prisma migrate deploy"
@@ -746,12 +750,17 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       // 重启策略
+      // min_uptime: 进程必须存活 ≥10s 才算"稳定"（防止 DB 重试循环绕过 unstable 计数）
+      // max_restarts: 10 次不稳定重启后停止，避免无限重启填满磁盘日志
+      // restart_delay: 每次重启间隔 5s，给数据库恢复留出时间
+      min_uptime: 10000,
       max_restarts: 10,
+      restart_delay: 5000,
       max_memory_restart: '300M',
       // 优雅关闭
       kill_timeout: 5000,
       wait_ready: true,
-      listen_timeout: 10000,
+      listen_timeout: 15000,
     },
   ],
 };
@@ -772,13 +781,20 @@ PM2EOF
 
     run_cmd "保存 PM2 进程列表" pm2 save
 
-    sleep 2
+    sleep 3
     info "验证后端健康状态..."
     if curl -sf http://127.0.0.1:3001/api/posts > /dev/null 2>&1; then
         success "后端 API 响应正常。"
     else
-        warn "后端尚未就绪（可能在启动中），请稍后检查。"
-        detail "运行: pm2 logs memorystory-backend"
+        warn "后端未能就绪。以下是最新的错误日志:"
+        echo ""
+        pm2 logs memorystory-backend --lines 20 --nostream 2>/dev/null || true
+        echo ""
+        detail "排查建议:"
+        detail "  1. 手动启动看完整报错: cd ${PROJECT_DIR}/backend && node dist/index.js"
+        detail "  2. 检查 DB 连通性: psql -U ${DB_USER} -d ${DB_NAME} -h localhost -c 'SELECT 1'"
+        detail "  3. 确认 Prisma Client 已生成: ls node_modules/.prisma/client/"
+        detail "  4. 查看完整 PM2 日志: pm2 logs memorystory-backend --lines 50"
     fi
 
     success "步骤 4 完成。"

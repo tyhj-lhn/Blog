@@ -730,7 +730,7 @@ module.exports = {
     {
       name: 'memorystory-backend',
       cwd: '${PROJECT_DIR}/backend',
-      script: 'dist/index.js',
+      script: 'boot.cjs',              // CJS wrapper → 兼容 PM2 fork + ESM
       interpreter: 'node',
       env: {
         NODE_ENV: 'production',

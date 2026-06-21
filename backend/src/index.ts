@@ -157,36 +157,43 @@ export function buildApp() {
   return fastify;
 }
 
+/**
+ * Start the server: connect to DB, listen on port, signal PM2 ready.
+ * Exported so CJS boot wrappers can call it directly without relying on
+ * `process.argv[1]` (which breaks when PM2 runs a wrapper script).
+ */
+export async function startServer(): Promise<void> {
+  const app = buildApp();
+
+  // Proactive database connection with retry
+  // Avoids lazy-connect-on-first-request which can fail silently
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await prisma.$connect();
+      app.log.info('Database connected');
+      break;
+    } catch (dbErr) {
+      app.log.error({ attempt, err: dbErr }, 'Database connection attempt failed');
+      if (attempt === 2) {
+        console.error('FATAL: Could not connect to database after 2 attempts');
+        process.exit(1);
+      }
+      await new Promise((r) => setTimeout(r, 3000)); // 3s delay before retry
+    }
+  }
+
+  await app.listen({ port: Number(process.env.PORT) || 3001, host: process.env.HOST || '0.0.0.0' });
+
+  // Signal PM2 that the app is ready (matches wait_ready: true in ecosystem.config.cjs)
+  if (typeof process.send === 'function') {
+    process.send('ready');
+  }
+}
+
 const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js');
 if (isMain) {
-  try {
-    const app = buildApp();
-
-    // Proactive database connection with retry
-    // Avoids lazy-connect-on-first-request which can fail silently
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        await prisma.$connect();
-        app.log.info('Database connected');
-        break;
-      } catch (dbErr) {
-        app.log.error({ attempt, err: dbErr }, 'Database connection attempt failed');
-        if (attempt === 2) {
-          console.error('FATAL: Could not connect to database after 2 attempts');
-          process.exit(1);
-        }
-        await new Promise((r) => setTimeout(r, 3000)); // 3s delay before retry
-      }
-    }
-
-    await app.listen({ port: Number(process.env.PORT) || 3001, host: process.env.HOST || '0.0.0.0' });
-
-    // Signal PM2 that the app is ready (matches wait_ready: true in ecosystem.config.cjs)
-    if (typeof process.send === 'function') {
-      process.send('ready');
-    }
-  } catch (err) {
+  startServer().catch((err) => {
     console.error('FATAL: Failed to start server:', err instanceof Error ? err.message : err);
     process.exit(1);
-  }
+  });
 }

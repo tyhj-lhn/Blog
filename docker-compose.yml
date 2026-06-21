@@ -2,8 +2,6 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: memorystory-db
-    ports:
-      - "${DB_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -16,6 +14,47 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - blog-network
+
+  backend:
+    build: ./backend
+    container_name: memorystory-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-memorystory}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-to-a-random-64-char-string}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-to-another-random-64-char-string}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  frontend:
+    build: ./frontend
+    container_name: memorystory-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - blog-network
 
 volumes:
   pgdata:
+  uploads:
+
+networks:
+  blog-network:
+    driver: bridge

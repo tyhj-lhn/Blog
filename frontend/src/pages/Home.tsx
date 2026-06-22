@@ -7,7 +7,7 @@ import type { PaginatedResponse, PostSummary, Tag } from '../types';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import Footer from '../components/Footer';
-import heroVideo from '../../images/Suvan_2k_02b29.mp4';
+import heroVideo from '../../images/Suvan_compressed.mp4';
 
 const PAGE_LIMIT = 6;
 
@@ -176,8 +176,6 @@ export default function Home() {
               muted
               playsInline
               onLoadedData={handleMediaLoaded}
-              onCanPlayThrough={handleMediaLoaded}
-              preload="auto"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
           ) : (
@@ -196,9 +194,7 @@ export default function Home() {
             loop
             muted
             playsInline
-            preload="auto"
             onLoadedData={handleMediaLoaded}
-            onCanPlayThrough={handleMediaLoaded}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         )}

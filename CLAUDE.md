@@ -1500,6 +1500,52 @@ PROJECT_DIR=/var/www/memorystory bash update.sh             # 指定目录
 
 **验证:** `bash -n update.sh` ✓ (syntax OK)
 
+### ✅ Phase 4.26: 首页视频壁纸性能修复 (2026-06-22)
+
+**问题:** 首页视频壁纸卡顿，点击喇叭取消静音后卡顿时间很长。
+
+**双重根因:**
+
+| # | 根因 | 详情 |
+|---|------|------|
+| 1 | Git LFS 未拉取 | `Suvan_2k_02b29.mp4` 仅 134 字节（LFS 指针），浏览器无法解码 |
+| 2 | 视频未压缩 | LFS 拉取后实际文件 155MB，2K 分辨率。Vite 构建直接复制到 dist（162MB），每个用户需下载 162MB 才能播放 |
+
+**修复:**
+
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| [Home.tsx](frontend/src/pages/Home.tsx) | 两个 `<video>` 移除 `preload="auto"` | autoplay 场景下 preload 被忽略，多余属性 |
+| [Home.tsx](frontend/src/pages/Home.tsx) | 两个 `<video>` 移除 `onCanPlayThrough` | 155MB 文件触发此事件需缓冲接近完整文件，导致遮罩永远不显示 |
+| [Home.tsx:10](frontend/src/pages/Home.tsx#L10) | import → `Suvan_compressed.mp4` | 指向待压缩的 720p 版本 |
+| [compress-video.sh](compress-video.sh) | **新建** | ffmpeg 压缩脚本：2K→720p，155MB→~5MB。CRF 28 + faststart |
+
+**压缩命令 (compress-video.sh):**
+```bash
+ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
+  -vf "scale=-2:720" -c:v libx264 -crf 28 -preset fast \
+  -c:a aac -b:a 48k -movflags +faststart \
+  frontend/images/Suvan_compressed.mp4
+```
+
+**解决步骤:**
+```bash
+# 1. 安装 ffmpeg (Windows)
+winget install ffmpeg
+
+# 2. 运行压缩
+bash compress-video.sh
+
+# 3. 验证 (文件应 ~3-5MB)
+ls -lh frontend/images/Suvan_compressed.mp4
+
+# 4. 重新构建
+cd frontend && npm run build
+# dist 中视频应从 162MB → ~5MB
+```
+
+**验证:** tsc ✓ · vite build ✓ (视频 162MB，压缩后 ~5MB)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

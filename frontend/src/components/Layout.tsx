@@ -50,14 +50,13 @@ export default function Layout() {
 
   // Pages with hero: let scroll position decide. Others: always glass nav.
   useEffect(() => {
-    requestAnimationFrame(() => {
-      if (!hasHero) {
-        setScrolled(true);
-      } else if (window.scrollY <= 0) {
-        setScrolled(false);
-      }
-    });
-  }, [hasHero]);
+    lastScrollY.current = window.scrollY;
+    if (!hasHero) {
+      setScrolled(true);
+    } else if (window.scrollY <= 0) {
+      setScrolled(false);
+    }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-zinc-50 font-body text-zinc-950">

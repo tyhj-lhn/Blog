@@ -205,7 +205,7 @@ export default function Home() {
 
         {/* Dark overlay — fades in after media loads, preventing grey flash */}
         <div
-          className={`absolute inset-0 bg-zinc-950/55 pointer-events-none transition-opacity duration-500 ${
+          className={`absolute inset-0 bg-zinc-950/40 pointer-events-none transition-opacity duration-500 ${
             mediaLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />

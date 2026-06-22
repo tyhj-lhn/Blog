@@ -110,7 +110,7 @@ export default function PostDetail() {
         </section>
         {/* Content skeleton */}
         <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
-        <section className="bg-white/80 backdrop-blur-xl px-4 py-12 md:py-16">
+        <section className="bg-white/50 backdrop-blur-xl px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto animate-pulse space-y-4">
             <div className="h-4 bg-zinc-200 rounded w-full" />
             <div className="h-4 bg-zinc-200 rounded w-full" />
@@ -130,7 +130,7 @@ export default function PostDetail() {
           </div>
         </section>
         <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
-        <section className="bg-white/80 backdrop-blur-xl px-4 py-12">
+        <section className="bg-white/50 backdrop-blur-xl px-4 py-12">
           <div className="max-w-4xl mx-auto">
             <p className="text-zinc-500 text-center py-12">该文章可能已被删除或地址不正确</p>
           </div>
@@ -203,9 +203,9 @@ export default function PostDetail() {
       <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Article content — white surface below */}
-      <section className="bg-white/80 backdrop-blur-xl px-4 py-8 md:py-12 border-t border-white/40 shadow-diffuse">
+      <section className="bg-white/50 backdrop-blur-xl px-4 py-8 md:py-12 border-t border-white/40 shadow-diffuse">
         <div className="max-w-4xl mx-auto">
-          <article className="border border-white/40 rounded-2xl bg-white/70 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12">
+          <article className="border border-white/40 rounded-2xl bg-white/80 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12">
             <div className="prose prose-zinc max-w-none leading-relaxed text-zinc-800">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}

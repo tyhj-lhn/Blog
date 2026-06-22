@@ -1,0 +1,940 @@
+root@iZj6ci93vrsyouga0hsl74Z:~# cd memorystory
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# bash setup-server.sh
+
+╔══════════════════════════════════════════════════╗
+║   MemoryStory Blog — 服务器环境部署              ║
+║   v2.0.0  |  2026-06-22 00:05:33               ║
+╚══════════════════════════════════════════════════╝
+
+   此脚本安装运行时环境（一次性）。
+   网站部署请使用: bash deploy-app.sh
+
+
+   数据库配置:
+
+   ❓ 数据库密码 (直接回车自动生成) [2fDU2TLUAD4RRCecFxJ6AjLwem5GiAm/DLMn2DymVRQ=]: 060829Tyhj
+
+   ════════ 安装配置摘要 ════════
+
+     数据库用户:       memorystory
+     数据库名:         memorystory
+     数据库密码:       ***
+     Node.js 版本:     22 LTS
+     PostgreSQL 版本:  17
+
+   ════════════════════════════
+
+   即将开始安装服务器环境，共 6 个步骤。
+
+   ❓ 确认开始安装？ [Y/n]: Y
+
+═══════════════════════════════════════════════════
+  步骤 1/6: 系统基础软件包
+═══════════════════════════════════════════════════
+
+   ✓ 所有基础软件包已安装，跳过。
+
+═══════════════════════════════════════════════════
+  步骤 2/6: Node.js 22 LTS
+═══════════════════════════════════════════════════
+
+   ℹ 将通过 NodeSource 安装 Node.js 22 LTS
+   ❓ 继续？ [Y/n]: Y
+   ℹ 下载 NodeSource 安装脚本...
+   ℹ 执行 NodeSource 安装脚本...
+2026-06-22 00:06:00 - Installing pre-requisites
+Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu noble InRelease [256 kB]
+Get:2 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates InRelease [126 kB]
+Get:3 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports InRelease [126 kB]
+Get:4 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security InRelease [126 kB]
+Get:5 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 Packages [1,401 kB]
+Get:6 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main Translation-en [513 kB]
+Get:7 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 Components [464 kB]
+Get:8 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 c-n-f Metadata [30.5 kB]
+Get:9 http://mirrors.cloud.aliyuncs.com/ubuntu noble/restricted amd64 Packages [93.9 kB]
+Get:10 http://mirrors.cloud.aliyuncs.com/ubuntu noble/restricted Translation-en [18.7 kB]
+Get:11 http://mirrors.cloud.aliyuncs.com/ubuntu noble/restricted amd64 c-n-f Metadata [416 B]
+Get:12 http://mirrors.cloud.aliyuncs.com/ubuntu noble/universe amd64 Packages [15.0 MB]
+Get:13 http://mirrors.cloud.aliyuncs.com/ubuntu noble/universe Translation-en [5,982 kB]
+Get:14 http://mirrors.cloud.aliyuncs.com/ubuntu noble/universe amd64 Components [3,871 kB]
+Get:15 http://mirrors.cloud.aliyuncs.com/ubuntu noble/universe amd64 c-n-f Metadata [301 kB]
+Get:16 http://mirrors.cloud.aliyuncs.com/ubuntu noble/multiverse amd64 Packages [269 kB]
+Get:17 http://mirrors.cloud.aliyuncs.com/ubuntu noble/multiverse Translation-en [118 kB]
+Get:18 http://mirrors.cloud.aliyuncs.com/ubuntu noble/multiverse amd64 Components [35.0 kB]
+Get:19 http://mirrors.cloud.aliyuncs.com/ubuntu noble/multiverse amd64 c-n-f Metadata [8,328 B]
+Get:20 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 Packages [1,031 kB]
+Get:21 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main Translation-en [259 kB]
+Get:22 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:23 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 c-n-f Metadata [17.4 kB]
+Get:24 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/restricted amd64 Packages [1,110 kB]
+Get:25 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/restricted Translation-en [251 kB]
+Get:26 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+Get:27 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/restricted amd64 c-n-f Metadata [456 B]
+Get:28 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/universe amd64 Packages [1,656 kB]
+Get:29 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/universe Translation-en [326 kB]
+Get:30 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:31 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [34.8 kB]
+Get:32 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/multiverse amd64 Packages [40.4 kB]
+Get:33 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/multiverse Translation-en [9,972 B]
+Get:34 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:35 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [656 B]
+Get:36 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/main amd64 Packages [40.6 kB]
+Get:37 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/main Translation-en [9,172 B]
+Get:38 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/main amd64 Components [5,772 B]
+Get:39 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/main amd64 c-n-f Metadata [368 B]
+Get:40 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+Get:41 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/restricted amd64 c-n-f Metadata [116 B]
+Get:42 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+Get:43 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/universe Translation-en [18.6 kB]
+Get:44 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/universe amd64 Components [10.6 kB]
+Get:45 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/universe amd64 c-n-f Metadata [1,588 B]
+Get:46 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/multiverse amd64 Packages [748 B]
+Get:47 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/multiverse Translation-en [340 B]
+Get:48 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+Get:49 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports/multiverse amd64 c-n-f Metadata [116 B]
+Get:50 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/main amd64 Packages [779 kB]
+Get:51 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/main Translation-en [178 kB]
+Get:52 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/main amd64 Components [44.9 kB]
+Get:53 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/main amd64 c-n-f Metadata [11.5 kB]
+Get:54 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/restricted amd64 Packages [1,048 kB]
+Get:55 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/restricted Translation-en [238 kB]
+Get:56 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/restricted amd64 Components [212 B]
+Get:57 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/restricted amd64 c-n-f Metadata [444 B]
+Get:58 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/universe amd64 Packages [1,170 kB]
+Get:59 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/universe Translation-en [229 kB]
+Get:60 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+Get:61 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/universe amd64 c-n-f Metadata [24.1 kB]
+Get:62 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/multiverse amd64 Packages [35.3 kB]
+Get:63 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/multiverse Translation-en [8,308 B]
+Get:64 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+Get:65 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [468 B]
+Fetched 38.0 MB in 6s (6,265 kB/s)                                                        
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+42 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+curl is already the newest version (8.5.0-2ubuntu10.9).
+gnupg is already the newest version (2.4.4-2ubuntu17.4).
+gnupg set to manually installed.
+The following NEW packages will be installed:
+  apt-transport-https
+The following packages will be upgraded:
+  ca-certificates
+1 upgraded, 1 newly installed, 0 to remove and 41 not upgraded.
+Need to get 143 kB of archives.
+After this operation, 17.4 kB disk space will be freed.
+Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 ca-certificates all 20260601~24.04.1 [139 kB]
+Get:2 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/universe amd64 apt-transport-https all 2.8.3 [3,970 B]
+Fetched 143 kB in 0s (5,324 kB/s)
+Preconfiguring packages ...
+(Reading database ... 85407 files and directories currently installed.)
+Preparing to unpack .../ca-certificates_20260601~24.04.1_all.deb ...
+Unpacking ca-certificates (20260601~24.04.1) over (20240203) ...
+Selecting previously unselected package apt-transport-https.
+Preparing to unpack .../apt-transport-https_2.8.3_all.deb ...
+Unpacking apt-transport-https (2.8.3) ...
+Setting up apt-transport-https (2.8.3) ...
+Setting up ca-certificates (20260601~24.04.1) ...
+Updating certificates in /etc/ssl/certs...
+rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+14 added, 39 removed; done.
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for ca-certificates (20260601~24.04.1) ...
+Updating certificates in /etc/ssl/certs...
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+Scanning processes...                                                                      
+Scanning linux images...                                                                   
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Hit:1 http://mirrors.cloud.aliyuncs.com/ubuntu noble InRelease
+Hit:2 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates InRelease     
+Hit:3 http://mirrors.cloud.aliyuncs.com/ubuntu noble-backports InRelease   
+Hit:4 http://mirrors.cloud.aliyuncs.com/ubuntu noble-security InRelease    
+Get:5 https://deb.nodesource.com/node_22.x nodistro InRelease [12.1 kB]    
+Get:6 https://deb.nodesource.com/node_22.x nodistro/main amd64 Packages [10.9 kB]
+Fetched 23.1 kB in 1s (26.1 kB/s)     
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+41 packages can be upgraded. Run 'apt list --upgradable' to see them.
+2026-06-22 00:06:31 - Repository configured successfully.
+2026-06-22 00:06:31 - To install Node.js, run: apt install nodejs -y
+2026-06-22 00:06:31 - You can use N|solid Runtime as a node.js alternative
+2026-06-22 00:06:31 - To install N|solid Runtime, run: apt install nsolid -y 
+
+   ℹ 安装 Node.js...
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  nodejs
+0 upgraded, 1 newly installed, 0 to remove and 41 not upgraded.
+Need to get 37.8 MB of archives.
+After this operation, 236 MB of additional disk space will be used.
+Get:1 https://deb.nodesource.com/node_22.x nodistro/main amd64 nodejs amd64 22.23.0-1nodesource1 [37.8 MB]
+Fetched 37.8 MB in 2s (16.8 MB/s)  
+Selecting previously unselected package nodejs.
+(Reading database ... 85386 files and directories currently installed.)
+Preparing to unpack .../nodejs_22.23.0-1nodesource1_amd64.deb ...
+Unpacking nodejs (22.23.0-1nodesource1) ...
+Setting up nodejs (22.23.0-1nodesource1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Scanning processes...                                                                      
+Scanning linux images...                                                                   
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+     Node.js v22.23.0
+     npm 10.9.8
+   ✓ 步骤 2 完成。
+
+═══════════════════════════════════════════════════
+  步骤 3/6: PostgreSQL 17
+═══════════════════════════════════════════════════
+
+   ℹ 将安装并启动 PostgreSQL 17
+   ❓ 继续？ [Y/n]: Y
+   ℹ 安装 PostgreSQL...
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  libcommon-sense-perl libjson-perl libjson-xs-perl libllvm17t64 libpq5
+  libtypes-serialiser-perl postgresql-16 postgresql-client-16 postgresql-client-common
+  postgresql-common ssl-cert
+Suggested packages:
+  postgresql-doc postgresql-doc-16
+The following NEW packages will be installed:
+  libcommon-sense-perl libjson-perl libjson-xs-perl libllvm17t64 libpq5
+  libtypes-serialiser-perl postgresql postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common postgresql-contrib ssl-cert
+0 upgraded, 13 newly installed, 0 to remove and 41 not upgraded.
+Need to get 43.6 MB of archives.
+After this operation, 175 MB of additional disk space will be used.
+Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 libjson-perl all 4.10000-1 [81.9 kB]
+Get:2 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql-client-common all 257build1.1 [36.4 kB]
+Get:3 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 ssl-cert all 1.1.2ubuntu1 [17.8 kB]
+Get:4 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql-common all 257build1.1 [161 kB]
+Get:5 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 libcommon-sense-perl amd64 3.75-3build3 [20.4 kB]
+Get:6 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 libtypes-serialiser-perl all 1.01-1 [11.6 kB]
+Get:7 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 libjson-xs-perl amd64 4.040-0ubuntu0.24.04.1 [83.7 kB]
+Get:8 http://mirrors.cloud.aliyuncs.com/ubuntu noble/main amd64 libllvm17t64 amd64 1:17.0.6-9ubuntu1 [26.2 MB]
+Get:9 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 libpq5 amd64 16.14-0ubuntu0.24.04.1 [147 kB]
+Get:10 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql-client-16 amd64 16.14-0ubuntu0.24.04.1 [1,300 kB]
+Get:11 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql-16 amd64 16.14-0ubuntu0.24.04.1 [15.6 MB]
+Get:12 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql all 16+257build1.1 [11.6 kB]
+Get:13 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 postgresql-contrib all 16+257build1.1 [11.6 kB]
+Fetched 43.6 MB in 2s (20.1 MB/s)               
+Preconfiguring packages ...
+Selecting previously unselected package libjson-perl.
+(Reading database ... 91247 files and directories currently installed.)
+Preparing to unpack .../00-libjson-perl_4.10000-1_all.deb ...
+Unpacking libjson-perl (4.10000-1) ...
+Selecting previously unselected package postgresql-client-common.
+Preparing to unpack .../01-postgresql-client-common_257build1.1_all.deb ...
+Unpacking postgresql-client-common (257build1.1) ...
+Selecting previously unselected package ssl-cert.
+Preparing to unpack .../02-ssl-cert_1.1.2ubuntu1_all.deb ...
+Unpacking ssl-cert (1.1.2ubuntu1) ...
+Selecting previously unselected package postgresql-common.
+Preparing to unpack .../03-postgresql-common_257build1.1_all.deb ...
+Adding 'diversion of /usr/bin/pg_config to /usr/bin/pg_config.libpq-dev by postgresql-common'
+Unpacking postgresql-common (257build1.1) ...
+Selecting previously unselected package libcommon-sense-perl:amd64.
+Preparing to unpack .../04-libcommon-sense-perl_3.75-3build3_amd64.deb ...
+Unpacking libcommon-sense-perl:amd64 (3.75-3build3) ...
+Selecting previously unselected package libtypes-serialiser-perl.
+Preparing to unpack .../05-libtypes-serialiser-perl_1.01-1_all.deb ...
+Unpacking libtypes-serialiser-perl (1.01-1) ...
+Selecting previously unselected package libjson-xs-perl.
+Preparing to unpack .../06-libjson-xs-perl_4.040-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking libjson-xs-perl (4.040-0ubuntu0.24.04.1) ...
+Selecting previously unselected package libllvm17t64:amd64.
+Preparing to unpack .../07-libllvm17t64_1%3a17.0.6-9ubuntu1_amd64.deb ...
+Unpacking libllvm17t64:amd64 (1:17.0.6-9ubuntu1) ...
+Selecting previously unselected package libpq5:amd64.
+Preparing to unpack .../08-libpq5_16.14-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking libpq5:amd64 (16.14-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql-client-16.
+Preparing to unpack .../09-postgresql-client-16_16.14-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking postgresql-client-16 (16.14-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql-16.
+Preparing to unpack .../10-postgresql-16_16.14-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking postgresql-16 (16.14-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql.
+Preparing to unpack .../11-postgresql_16+257build1.1_all.deb ...
+Unpacking postgresql (16+257build1.1) ...
+Selecting previously unselected package postgresql-contrib.
+Preparing to unpack .../12-postgresql-contrib_16+257build1.1_all.deb ...
+Unpacking postgresql-contrib (16+257build1.1) ...
+Setting up postgresql-client-common (257build1.1) ...
+Setting up libpq5:amd64 (16.14-0ubuntu0.24.04.1) ...
+Setting up libcommon-sense-perl:amd64 (3.75-3build3) ...
+Setting up libllvm17t64:amd64 (1:17.0.6-9ubuntu1) ...
+Setting up ssl-cert (1.1.2ubuntu1) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/ssl-cert.service → /usr/lib/systemd/system/ssl-cert.service.
+Setting up libtypes-serialiser-perl (1.01-1) ...
+Setting up libjson-perl (4.10000-1) ...
+Setting up libjson-xs-perl (4.040-0ubuntu0.24.04.1) ...
+Setting up postgresql-client-16 (16.14-0ubuntu0.24.04.1) ...
+update-alternatives: using /usr/share/postgresql/16/man/man1/psql.1.gz to provide /usr/share/man/man1/psql.1.gz (psql.1.gz) in auto mode
+Setting up postgresql-common (257build1.1) ...
+
+Creating config file /etc/postgresql-common/createcluster.conf with new version
+Building PostgreSQL dictionaries from installed myspell/hunspell packages...
+Removing obsolete dictionary files:
+Created symlink /etc/systemd/system/multi-user.target.wants/postgresql.service → /usr/lib/systemd/system/postgresql.service.
+Setting up postgresql-16 (16.14-0ubuntu0.24.04.1) ...
+Creating new PostgreSQL cluster 16/main ...
+/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/16/main --auth-local peer --auth-host scram-sha-256 --no-instructions
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/16/main ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Asia/Shanghai
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+Setting up postgresql-contrib (16+257build1.1) ...
+Setting up postgresql (16+257build1.1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.7) ...
+Scanning processes...                                                                      
+Scanning linux images...                                                                   
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+   ℹ 设置 PostgreSQL 开机自启...
+Synchronizing state of postgresql.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable postgresql
+   ℹ 启动 PostgreSQL...
+   ℹ 等待 PostgreSQL 就绪...
+   ✓ PostgreSQL 已就绪。
+   ℹ 创建数据库用户: memorystory
+   ❓ 继续？ [Y/n]: Y
+   ℹ 创建数据库用户...
+CREATE ROLE
+   ✓ 用户 'memorystory' 已创建。
+   ℹ 创建数据库: memorystory
+   ❓ 继续？ [Y/n]: Y
+   ℹ 创建数据库...
+CREATE DATABASE
+   ✓ 数据库 'memorystory' 已创建。
+
+   ════════ 数据库信息 ════════
+     用户:     memorystory
+     数据库:   memorystory
+     密码:     060829Tyhj
+   请妥善保存以上信息，网站部署时需要用到。
+   ════════════════════════════
+
+   ✓ 步骤 3 完成。
+
+═══════════════════════════════════════════════════
+  步骤 4/6: Nginx
+═══════════════════════════════════════════════════
+
+   ℹ 将安装 Nginx 并设置开机自启
+   ❓ 继续？ [Y/n]: Y
+   ℹ 安装 Nginx...
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  nginx-common
+Suggested packages:
+  fcgiwrap nginx-doc
+The following NEW packages will be installed:
+  nginx nginx-common
+0 upgraded, 2 newly installed, 0 to remove and 41 not upgraded.
+Need to get 568 kB of archives.
+After this operation, 1,599 kB of additional disk space will be used.
+Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 nginx-common all 1.24.0-2ubuntu7.12 [44.5 kB]
+Get:2 http://mirrors.cloud.aliyuncs.com/ubuntu noble-updates/main amd64 nginx amd64 1.24.0-2ubuntu7.12 [524 kB]
+Fetched 568 kB in 0s (13.0 MB/s)
+Preconfiguring packages ...
+Selecting previously unselected package nginx-common.
+(Reading database ... 93217 files and directories currently installed.)
+Preparing to unpack .../nginx-common_1.24.0-2ubuntu7.12_all.deb ...
+Unpacking nginx-common (1.24.0-2ubuntu7.12) ...
+Selecting previously unselected package nginx.
+Preparing to unpack .../nginx_1.24.0-2ubuntu7.12_amd64.deb ...
+Unpacking nginx (1.24.0-2ubuntu7.12) ...
+Setting up nginx-common (1.24.0-2ubuntu7.12) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/nginx.service → /usr/lib/systemd/system/nginx.service.
+Setting up nginx (1.24.0-2ubuntu7.12) ...
+ * Upgrading binary nginx                                                           [ OK ] 
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for ufw (0.36.2-6) ...
+Scanning processes...                                                                      
+Scanning linux images...                                                                   
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+   ℹ 设置 Nginx 开机自启...
+Synchronizing state of nginx.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable nginx
+   ℹ 启动 Nginx...
+   ✓ 步骤 4 完成。
+
+═══════════════════════════════════════════════════
+  步骤 5/6: PM2 进程管理
+═══════════════════════════════════════════════════
+
+   ℹ 将全局安装 PM2 并配置 systemd 开机自启
+   ❓ 继续？ [Y/n]: Y
+   ℹ 全局安装 PM2...
+
+added 90 packages in 8s
+
+8 packages are looking for funding
+  run `npm fund` for details
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 11.17.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.17.0
+npm notice To update run: npm install -g npm@11.17.0
+npm notice
+   ℹ 配置 PM2 开机自启...
+     
+                        -------------
+
+__/\\\\\\\____/\\____________/\\____/\\\\\_____
+ _\/\\/////////\\_\/\\\________/\\\__/\\///////\\___
+  _\/\\_______\/\\_\/\\//\\____/\\//\\_\///______\//\\__
+   _\/\\\\\\\/__\/\\///\\/\\/_\/\\___________/\\/___
+    _\/\\/////////____\/\\__\///\\/___\/\\________/\\//_____
+     _\/\\_____________\/\\____\///_____\/\\_____/\\//________
+      _\/\\_____________\/\\_____________\/\\___/\\/___________
+       _\/\\_____________\/\\_____________\/\\__/\\\\\\\\_
+        _\///______________\///______________\///__\///////////////__
+
+
+                          Runtime Edition
+
+        PM2 is a Production Process Manager for Node.js applications
+                     with a built-in Load Balancer.
+
+                Start and Daemonize any application:
+                $ pm2 start app.js
+
+                Load Balance 4 instances of api.js:
+                $ pm2 start api.js -i 4
+
+                Monitor in production:
+                $ pm2 monitor
+
+                Make pm2 auto-boot at server restart:
+                $ pm2 startup
+
+                To go further checkout:
+                http://pm2.io/
+
+
+                        -------------
+
+[PM2] Init System found: systemd
+Platform systemd
+Template
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=root
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/root/.pm2
+PIDFile=/root/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/usr/lib/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/usr/lib/node_modules/pm2/bin/pm2 reload all
+ExecStop=/usr/lib/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target
+
+Target path
+/etc/systemd/system/pm2-root.service
+Command list
+[ 'systemctl enable pm2-root' ]
+[PM2] Writing init configuration in /etc/systemd/system/pm2-root.service
+[PM2] Making script booting at startup...
+[PM2] [-] Executing: systemctl enable pm2-root...
+Created symlink /etc/systemd/system/multi-user.target.wants/pm2-root.service → /etc/systemd/system/pm2-root.service.
+[PM2] [v] Command successfully executed.
++---------------------------------------+
+[PM2] Freeze a process list on reboot via:
+$ pm2 save
+
+[PM2] Remove init script via:
+$ pm2 unstartup systemd
+
+   ⚠ 脚本以退出码 1 结束。已完成步骤不会重复执行。
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 帮我设置ufw 防火墙（放行 SSH + Nginx Full）
+帮我设置ufw: command not found
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 帮我设置ufw 防火墙（放行 SSH + Nginx Full）
+
+
+
+
+
+
+
+
+
+
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# sudo ufw status verbose
+Status: inactive
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# sudo ufw allow OpenSSH
+Rules updated
+Rules updated (v6)
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# sudo ufw allow 'Nginx Full'
+Rules updated
+Rules updated (v6)
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 
+
+
+
+
+
+
+
+
+
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# sudo ufw --force enable
+Firewall is active and enabled on system startup
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 
+
+
+
+
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# cd /root/memorystory
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# bash deploy-app.sh
+
+
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# bash deploy-app.sh
+
+╔══════════════════════════════════════════════════╗
+║     MemoryStory Blog — 网站部署                    ║
+║     v2.0.0  |  2026-06-22 00:11:39               ║
+╚══════════════════════════════════════════════════╝
+
+
+
+   请输入以下部署信息:
+
+   ❓ Git 仓库地址 (如 https://github.com/user/repo.git): https://github.com/tyhj-lhn/Blog.git
+   ❓ 数据库密码 (setup-server.sh 输出的密码): 060829Tyhj
+   ❓ 域名 (留空使用公网 IP) []: 
+   ❓ 项目安装目录 [/var/www/memorystory]: /var/www/memorystory
+   ℹ 正在检测公网 IP...
+     检测到公网 IP: 47.239.2.6
+   ❓ 确认公网 IP（用于 Nginx 配置） [47.239.2.6]: 
+
+   ════════ 部署配置摘要 ════════
+
+     Git 仓库:         https://github.com/tyhj-lhn/Blog.git
+     项目目录:         /var/www/memorystory
+     数据库用户:       memorystory
+     数据库名:         memorystory
+     数据库密码:       ***
+     Nginx 静态目录:   /var/www/html
+     后端端口:         3001 (127.0.0.1)
+     访问方式:         公网 IP (47.239.2.6)
+     SSL:              不可用（需域名）
+
+   ═══════════════════════════════
+
+   即将开始部署网站，共 8 个步骤。
+
+   ❓ 确认以上配置无误，开始部署？ [Y/n]: Y
+
+═══════════════════════════════════════════════════
+  步骤 1/8: 获取项目代码
+═══════════════════════════════════════════════════
+
+   ℹ 将克隆仓库到: /var/www/memorystory
+   ❓ 继续？ [Y/n]: Y
+   ℹ 创建父目录...
+   ℹ 克隆仓库...
+Cloning into '/var/www/memorystory'...
+remote: Enumerating objects: 520, done.
+remote: Counting objects: 100% (520/520), done.
+remote: Compressing objects: 100% (217/217), done.
+remote: Total 520 (delta 289), reused 513 (delta 282), pack-reused 0 (from 0)
+Receiving objects: 100% (520/520), 3.55 MiB | 14.62 MiB/s, done.
+Resolving deltas: 100% (289/289), done.
+   ✓ 步骤 1 完成。
+
+═══════════════════════════════════════════════════
+  步骤 2/8: 配置生产环境变量
+═══════════════════════════════════════════════════
+
+   ℹ 正在生成安全密钥...
+
+   ════════ 重要 ════════
+   以下密钥仅在本次显示，请妥善保存！
+
+     JWT_ACCESS_SECRET:  6RXtE3y8G1dE3iK/J+qKVHvcUXRTH72IHbA7bFaJc98GVVMuQmw1a8AqTHEr4HaTVzKM6swU4zVCvg8gGW+eFw==
+     JWT_REFRESH_SECRET: WdVWXjTo+etrgjxWWbxRWjGHQode3aflL5CPm6I15bL0MmL/pMo1a9SJNPaGhDMe9kMtLcHmfyu7QIjdkpelSw==
+
+     以上值已写入 /var/www/memorystory/backend/.env (权限 600)
+   ════════════════════════
+
+   ✓ 步骤 2 完成。
+
+═══════════════════════════════════════════════════
+  步骤 3/8: 后端构建
+═══════════════════════════════════════════════════
+
+   ℹ 将执行: npm install → prisma migrate → prisma seed → tsc → npm prune
+   ❓ 继续？ [Y/n]: Y
+   ℹ 安装依赖...
+
+added 186 packages, and audited 187 packages in 18s
+
+54 packages are looking for funding
+  run `npm fund` for details
+
+1 low severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+   ℹ 运行数据库迁移...
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "memorystory", schema "public" at "localhost:5432"
+
+8 migrations found in prisma/migrations
+
+Applying migration `20260619050550_init`
+Applying migration `20260619060400_add_token_version`
+Applying migration `20260619085542_add_wallpaper`
+Applying migration `20260619091757_add_like_count`
+Applying migration `20260620061629_add_user_avatar`
+Applying migration `20260620090337_add_about`
+Applying migration `20260620105139_add_indexes_and_about_columns`
+Applying migration `20260620120000_add_check_constraints_and_pg_trgm`
+
+┌─────────────────────────────────────────────────────────┐
+│  Update available 6.19.3 -> 7.8.0                       │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260619050550_init/
+    └─ migration.sql
+  └─ 20260619060400_add_token_version/
+    └─ migration.sql
+  └─ 20260619085542_add_wallpaper/
+    └─ migration.sql
+  └─ 20260619091757_add_like_count/
+    └─ migration.sql
+  └─ 20260620061629_add_user_avatar/
+    └─ migration.sql
+  └─ 20260620090337_add_about/
+    └─ migration.sql
+  └─ 20260620105139_add_indexes_and_about_columns/
+    └─ migration.sql
+  └─ 20260620120000_add_check_constraints_and_pg_trgm/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+   ℹ 初始化种子数据...
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+Seed completed!
+
+🌱  The seed command has been executed.
+   ℹ 编译 TypeScript...
+
+> memorystory-backend@1.0.0 build
+> tsc
+
+   ℹ 清理开发依赖...
+npm warn config production Use `--omit=dev` instead.
+
+up to date, audited 131 packages in 804ms
+
+39 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+   ℹ 创建 uploads 目录...
+   ℹ 创建 logs 目录...
+   ✓ 步骤 3 完成。
+
+═══════════════════════════════════════════════════
+  步骤 4/8: PM2 启动后端
+═══════════════════════════════════════════════════
+
+   ℹ 生成生产 PM2 配置: /var/www/memorystory/ecosystem.production.config.cjs
+   ❓ 启动后端？ [Y/n]: Y
+   ℹ 启动 PM2 后端...
+[PM2][WARN] Applications memorystory-backend not running, starting...
+[PM2][WARN] App memorystory-backend has option 'wait_ready' set, waiting for app to be ready...
+[PM2] App [memorystory-backend] launched (1 instances)
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ memorystory-backe… │ fork     │ 3    │ launching │ 0%       │ 0b       │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+   ℹ 保存 PM2 进程列表...
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+   ℹ 验证后端健康状态...
+   ⚠ 后端尚未就绪（可能在启动中），请稍后检查。
+     运行: pm2 logs memorystory-backend
+   ✓ 步骤 4 完成。
+
+═══════════════════════════════════════════════════
+  步骤 5/8: 前端构建
+═══════════════════════════════════════════════════
+
+   ℹ 将执行: npm ci → vite build → 部署到 Nginx
+   ❓ 继续？ [Y/n]: Y
+   ℹ 安装前端依赖...
+
+added 274 packages, and audited 275 packages in 14s
+
+132 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+   ℹ 构建前端...
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+vite v8.0.16 building client environment for production...
+✓ 2110 modules transformed.
+computing gzip size...
+dist/assets/Suvan_2k_02b29-DTU9ugyu.mp4    0.13 kB
+dist/index.html                            0.48 kB │ gzip:   0.32 kB
+dist/assets/index-2Dg6vDHH.css            52.46 kB │ gzip:   9.14 kB
+dist/assets/index-CtJxVCWX.js            552.78 kB │ gzip: 160.98 kB
+
+✓ built in 1.60s
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+   ℹ 备份旧静态文件...
+   ℹ 部署静态文件到 Nginx...
+   ✓ 步骤 5 完成。
+
+═══════════════════════════════════════════════════
+  步骤 6/8: Nginx 站点配置
+═══════════════════════════════════════════════════
+
+   ℹ Nginx server_name: 47.239.2.6
+   ℹ 模式: 公网 IP (HTTP)
+   ❓ 创建 Nginx 配置？ [Y/n]: Y
+   ℹ 创建站点软链接...
+   ℹ 移除默认站点配置...
+   ℹ 测试 Nginx 配置...
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+   ℹ 重载 Nginx...
+   ✓ 步骤 6 完成。
+
+   ════════ 域名提醒 ════════
+   当前使用公网 IP 访问，未配置 SSL。
+   有域名后，只需两步:
+     1. 编辑 deploy-app.sh 顶部 DOMAIN="你的域名"
+     2. 重新运行: bash deploy-app.sh
+        脚本将自动切换为 HTTPS + Let's Encrypt
+   ════════════════════════════
+
+
+═══════════════════════════════════════════════════
+  步骤 7/8: SSL 证书 (Let's Encrypt)
+═══════════════════════════════════════════════════
+
+   ℹ 未配置域名，跳过 SSL（IP 模式下无法申请证书）。
+
+═══════════════════════════════════════════════════
+  步骤 8/8: 最终验证
+═══════════════════════════════════════════════════
+
+
+   部署验证报告 — 2026-06-22 00:15:46
+   ─────────────────────────────────────────
+   ✓ PostgreSQL 运行
+   ✓ Nginx 运行
+   ✓ PM2 已安装
+   ✓ 项目已克隆
+   ✓ 生产 .env 已配置
+   ✓ 后端已构建
+   ✓ PM2 后端运行中
+   ✓ 前端已部署
+   ✓ Nginx 站点已配置
+   ─────────────────────────────────────────
+
+   ✓ 所有检查通过！
+
+   ════════════════════════════════════════
+   博客地址:  http://47.239.2.6
+   管理后台:  http://47.239.2.6/admin
+
+   默认管理员账户:
+     邮箱:    admin@example.com
+     密码:    admin123
+   请立即登录管理后台修改密码！
+     路径: /admin/profile → 修改密码
+
+   运维命令:
+     pm2 status                     查看进程状态
+     pm2 logs memorystory-backend   查看后端日志
+     pm2 restart memorystory-backend 重启后端
+
+   提示: 有域名后，修改脚本 DOMAIN 变量并重新运行即可。
+
+   ════════════════════════════════════════
+
+   ✓ 步骤 8 完成。
+
+   ╔══════════════════════════════════════════════╗
+   ║  MemoryStory Blog 部署完成！                  ║
+   ╚══════════════════════════════════════════════╝
+
+   ℹ 更新代码只需再次运行: bash deploy-app.sh
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# pm2 status
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ memorystory-backe… │ fork     │ 26   │ launching │ 0%       │ 0b       │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# curl http://localhost:3001/api/posts
+curl: (7) Failed to connect to localhost port 3001 after 0 ms: Couldn't connect to server
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# curl -I http://localhost
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Date: Sun, 21 Jun 2026 16:16:31 GMT
+Content-Type: text/html
+Content-Length: 483
+Last-Modified: Sun, 21 Jun 2026 16:15:35 GMT
+Connection: keep-alive
+ETag: "6a380e27-1e3"
+Accept-Ranges: bytes
+
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# curl http://47.239.2.6
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MemoryStory</title>
+    <script type="module" crossorigin src="/assets/index-CtJxVCWX.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-2Dg6vDHH.css">
+  </head>
+  <body class="bg-zinc-50">
+    <div id="root"></div>
+  </body>
+</html>
+root@iZj6ci93vrsyouga0hsl74Z:~/memorystory# 

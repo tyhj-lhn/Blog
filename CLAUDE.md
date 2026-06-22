@@ -1328,15 +1328,17 @@ ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
 
 | 变更 | 旧 | 新 |
 |------|----|----|
-| `article` 容器 | 无样式 | `border border-white/40 rounded-2xl bg-white/70 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12` |
+| `article` 容器 | 无样式 | `border border-white/40 rounded-2xl bg-white/80 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12` |
+| `section` 背景 | `bg-white/80` | `bg-white/50`（降低不透明度，毛玻璃层次可见） |
 | prose 内部 margin | `mb-12` 在 prose div 上 | 移至 article 外层（卡片与评论区间距） |
 
-**视觉层次（三层玻璃递进）:**
+**视觉层次（双层玻璃递进）:**
 ```
 bg-zinc-50 页面底色
-  → section: bg-white/80 backdrop-blur-xl (页面级毛玻璃)
-    → article: bg-white/70 backdrop-blur-md rounded-2xl (文章卡片毛玻璃)
+  → section: bg-white/50 backdrop-blur-xl (半透明，透出灰底)
+    → article: bg-white/80 backdrop-blur-md rounded-2xl (更白更实，前景卡片)
 ```
+- section 50% → zinc-50 底色透出浅灰，article 80% → 比 section 更白 → backdrop-blur 有颜色可模糊 → 可见的磨砂层次
 
 **Layout — 导航栏双形态扩展到博文页:**
 
@@ -1346,7 +1348,7 @@ bg-zinc-50 页面底色
 | `hasHero = isHome \|\| isPostDetail` | 替代原 `isHome` — 有 hero 的页面都用透明 nav |
 | `hasHeroRef` | 替代原 `isHomeRef` — scroll handler 中判断 scrolled 状态 |
 | 初始 scrolled | `!hasHero \|\| window.scrollY > 0` — hero 页默认透明，非 hero 页默认毛玻璃 |
-| 路由切换 effect | 依赖 `[hasHero]` 替代 `[isHome]` |
+| 路由切换 effect | 依赖 `[location.pathname]`（含 `lastScrollY` 重置） — 每次导航都触发 |
 
 **双形态导航栏页面:**
 | 页面 | hero | 顶部导航 |
@@ -1355,13 +1357,30 @@ bg-zinc-50 页面底色
 | `/post/:slug` | 封面图 hero | 透明覆叠 → 下滚毛玻璃 |
 | `/tags`, `/guestbook`, `/about`, `/search` | 无 hero | 始终毛玻璃 |
 
+**Bugfix (2026-06-22):**
+| Bug | 根因 | 修复 |
+|-----|------|------|
+| 导航栏在博文页卡住（单一状态） | route-switch effect 依赖 `[hasHero]`，hero→hero 导航不触发；`lastScrollY` 跨页未重置 | `[hasHero]` → `[location.pathname]`，新增 `lastScrollY.current = window.scrollY`，移除 `rAF` 包装 |
+| 文章卡片无毛玻璃效果（纯白） | section `bg-white/80` + article `bg-white/70` = 两层白色叠加，blur 无内容可模糊 | section → `bg-white/50`，article → `bg-white/80`，层次对比可见 |
+
 **文件变更:**
 | 文件 | 变更 |
 |------|------|
-| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | article 变独立毛玻璃卡片（`bg-white/70 backdrop-blur-md shadow-diffuse rounded-2xl p-6 md:p-10`），`mb-12` 从 prose div 移至 article |
-| [Layout.tsx](frontend/src/components/Layout.tsx) | `isHome` → `hasHero = isHome \|\| isPostDetail`，ref + scroll handler + route-switch effect 全部用 `hasHero` |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | Loading/Error/正常 section `bg-white/80→50`，article `bg-white/70→80` |
+| [Layout.tsx](frontend/src/components/Layout.tsx) | `isHome` → `hasHero = isHome \|\| isPostDetail`，route-switch effect 依赖 `[location.pathname]` + `lastScrollY` 重置 |
 
-**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.86 KB JS, 73.74 KB CSS)
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.87 KB JS, 73.92 KB CSS)
+
+### ✅ Phase 4.21: 首页 Hero 遮罩降低不透明度 (2026-06-22)
+
+**目标:** 用户反馈主页"过于暗"，降低 hero 遮罩不透明度让壁纸/视频更鲜亮通透。
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [Home.tsx:208](frontend/src/pages/Home.tsx#L208) | hero 遮罩 `bg-zinc-950/55` → `bg-zinc-950/40` |
+
+**验证:** tsc ✓ · vite build ✓ (553.87 KB JS, 74.10 KB CSS)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

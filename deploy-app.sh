@@ -1026,57 +1026,91 @@ step_verify() {
 
 collect_inputs() {
     echo ""
-    echo -e "   ${BOLD}请输入以下部署信息:${NC}"
-    echo ""
 
-    # Git 仓库
     if $IS_UPDATE; then
-        # 更新模式：从已有仓库自动获取
+        # ═════════ 更新模式：全部自动检测，零交互 ═════════
+        echo -e "   ${BOLD}更新模式 — 自动检测已有配置:${NC}"
+        echo ""
+
+        # Git 仓库 — 从 remote 读取
         GIT_REPO=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || echo "")
         if [[ -n "$GIT_REPO" ]]; then
-            info "Git 仓库 (自动检测): ${GIT_REPO}"
+            success "Git 仓库: ${GIT_REPO}"
         fi
-    fi
-    if [[ -z "$GIT_REPO" ]]; then
-        GIT_REPO=$(prompt_required "Git 仓库地址 (如 https://github.com/user/repo.git)")
-    else
-        info "Git 仓库: ${GIT_REPO} (来自命令行参数)"
-    fi
 
-    # 数据库密码
-    if $IS_UPDATE; then
-        # 更新模式：.env 已配置，无需密码
+        # 数据库密码 — 跳过（.env 已配置）
         DB_PASSWORD="(保留现有配置)"
-        info "数据库密码: 保留现有 .env 配置"
-    elif [[ -z "$DB_PASSWORD" ]]; then
-        DB_PASSWORD=$(prompt_required "数据库密码 (setup-server.sh 输出的密码)")
-    else
-        info "数据库密码: *** (来自命令行参数)"
-    fi
+        success "数据库密码: 保留现有 .env 配置"
 
-    # 域名（可选）
-    if [[ -z "$DOMAIN" ]]; then
-        DOMAIN=$(prompt_with_default "域名 (留空使用公网 IP)" "")
-    fi
-
-    # 项目目录
-    PROJECT_DIR=$(prompt_with_default "项目安装目录" "$PROJECT_DIR")
-
-    # 公网 IP（无域名时）
-    if [[ -z "$DOMAIN" ]]; then
-        info "正在检测公网 IP..."
-        SERVER_IP=$(detect_public_ip) || true
-        if [[ -n "$SERVER_IP" ]]; then
-            detail "检测到公网 IP: ${SERVER_IP}"
-            SERVER_IP=$(prompt_with_default "确认公网 IP（用于 Nginx 配置）" "$SERVER_IP")
-        else
-            SERVER_IP=$(prompt_required "无法自动检测，请输入服务器公网 IP")
+        # 域名 — 从 Nginx 配置读取
+        local nginx_config="/etc/nginx/sites-enabled/${NGINX_SITE_NAME}"
+        if [[ -f "$nginx_config" ]]; then
+            DOMAIN=$(grep -oP 'server_name\s+\K[^;]+' "$nginx_config" 2>/dev/null | head -1 | tr -d ' ')
+            # 过滤掉 IP 地址（只保留域名）
+            if [[ -n "$DOMAIN" ]] && [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                DOMAIN=""
+            fi
         fi
-    fi
+        if [[ -n "$DOMAIN" ]]; then
+            success "域名: ${DOMAIN}"
+            if [[ -d "/etc/letsencrypt/live/${DOMAIN}" ]]; then
+                CERT_EMAIL="(已有证书)"
+                success "SSL: 证书已存在，无需重新申请"
+            fi
+        else
+            # 无域名 → 公网 IP
+            SERVER_IP=$(detect_public_ip) || true
+            if [[ -n "$SERVER_IP" ]]; then
+                success "公网 IP: ${SERVER_IP}"
+            fi
+        fi
 
-    # SSL 邮箱（有域名时）
-    if [[ -n "$DOMAIN" && -z "$CERT_EMAIL" ]]; then
-        CERT_EMAIL=$(prompt_with_default "Let's Encrypt 通知邮箱" "admin@${DOMAIN}")
+        # 项目目录
+        success "项目目录: ${PROJECT_DIR}"
+
+    else
+        # ═════════ 首次部署：交互式收集 ═════════
+        echo -e "   ${BOLD}请输入以下部署信息:${NC}"
+        echo ""
+
+        # Git 仓库
+        if [[ -z "$GIT_REPO" ]]; then
+            GIT_REPO=$(prompt_required "Git 仓库地址 (如 https://github.com/user/repo.git)")
+        else
+            info "Git 仓库: ${GIT_REPO} (来自命令行参数)"
+        fi
+
+        # 数据库密码
+        if [[ -z "$DB_PASSWORD" ]]; then
+            DB_PASSWORD=$(prompt_required "数据库密码 (setup-server.sh 输出的密码)")
+        else
+            info "数据库密码: *** (来自命令行参数)"
+        fi
+
+        # 域名（可选）
+        if [[ -z "$DOMAIN" ]]; then
+            DOMAIN=$(prompt_with_default "域名 (留空使用公网 IP)" "")
+        fi
+
+        # 项目目录
+        PROJECT_DIR=$(prompt_with_default "项目安装目录" "$PROJECT_DIR")
+
+        # 公网 IP（无域名时）
+        if [[ -z "$DOMAIN" ]]; then
+            info "正在检测公网 IP..."
+            SERVER_IP=$(detect_public_ip) || true
+            if [[ -n "$SERVER_IP" ]]; then
+                detail "检测到公网 IP: ${SERVER_IP}"
+                SERVER_IP=$(prompt_with_default "确认公网 IP（用于 Nginx 配置）" "$SERVER_IP")
+            else
+                SERVER_IP=$(prompt_required "无法自动检测，请输入服务器公网 IP")
+            fi
+        fi
+
+        # SSL 邮箱（有域名时）
+        if [[ -n "$DOMAIN" && -z "$CERT_EMAIL" ]]; then
+            CERT_EMAIL=$(prompt_with_default "Let's Encrypt 通知邮箱" "admin@${DOMAIN}")
+        fi
     fi
 }
 
@@ -1088,13 +1122,21 @@ print_summary() {
     detail "项目目录:         ${PROJECT_DIR}"
     detail "数据库用户:       ${DB_USER}"
     detail "数据库名:         ${DB_NAME}"
-    detail "数据库密码:       ***"
+    if $IS_UPDATE; then
+        detail "数据库密码:       (保留现有配置)"
+    else
+        detail "数据库密码:       ***"
+    fi
     detail "Nginx 静态目录:   ${NGINX_HTML_ROOT}"
     detail "后端端口:         3001 (127.0.0.1)"
     if [[ -n "$DOMAIN" ]]; then
         detail "访问方式:         域名 (${DOMAIN})"
-        detail "SSL:              将自动配置"
-        detail "SSL 邮箱:         ${CERT_EMAIL}"
+        if $IS_UPDATE && [[ -d "/etc/letsencrypt/live/${DOMAIN}" ]]; then
+            detail "SSL:              已有证书，跳过"
+        else
+            detail "SSL:              将自动配置"
+            detail "SSL 邮箱:         ${CERT_EMAIL}"
+        fi
     else
         detail "访问方式:         公网 IP (${SERVER_IP:-未检测})"
         detail "SSL:              不可用（需域名）"
@@ -1161,14 +1203,22 @@ main() {
     # 收集输入
     collect_inputs
 
-    # 打印摘要
-    print_summary
-    echo -e "   ${YELLOW}${BOLD}即将开始部署网站，共 8 个步骤。${NC}"
-    echo ""
-    confirm "确认以上配置无误，开始部署？" "y" || {
-        info "已取消部署。"
-        exit 0
-    }
+    if $IS_UPDATE; then
+        # 更新模式：一切自动检测，直接执行
+        echo -e "   ${BLUE}═══════════════════════════════════════════════════${NC}"
+        echo -e "   ${BLUE}  ${BOLD}开始更新部署...${NC}"
+        echo -e "   ${BLUE}═══════════════════════════════════════════════════${NC}"
+        echo ""
+    else
+        # 首次部署：打印摘要 + 确认
+        print_summary
+        echo -e "   ${YELLOW}${BOLD}即将开始部署网站，共 8 个步骤。${NC}"
+        echo ""
+        confirm "确认以上配置无误，开始部署？" "y" || {
+            info "已取消部署。"
+            exit 0
+        }
+    fi
 
     # ──── 执行部署步骤 ────
 

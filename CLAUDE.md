@@ -1423,24 +1423,31 @@ React effect 自底向上执行 — Layout 的 effect 先于 `ScrollToTop.scroll
 
 **验证:** tsc ✓ · vite build ✓ (553.84 KB JS, 74.22 KB CSS)
 
-### ✅ Phase 4.24: 部署脚本更新模式免输入优化 (2026-06-22)
+### ✅ Phase 4.24: 部署脚本更新模式全自动免交互 (2026-06-22)
 
-**问题:** `deploy-app.sh` 更新模式仍要求用户交互输入 Git 地址和数据库密码 — 这些信息在首次部署后已经存在。
+**问题:** `deploy-app.sh` 更新模式仍要求用户交互输入 Git 地址、数据库密码、域名、公网 IP、项目目录，并打印摘要确认 — 这些在首次部署后全部已知。
 
 **修复:**
 
 | 文件 | 变更 |
 |------|------|
-| [deploy-app.sh](deploy-app.sh) | `collect_inputs()` 新增更新模式检测 — `IS_UPDATE=true` 时自动从已有仓库获取 `git remote get-url origin`，数据库密码跳过（`.env` 已配置） |
+| [deploy-app.sh](deploy-app.sh) | `collect_inputs()` 重写为两分支：更新模式全部自动检测（`success` 输出），首次部署保留交互式收集 |
+| [deploy-app.sh](deploy-app.sh) | `main()` 更新模式跳过 `print_summary` + 确认提示，直接开始部署 |
 
-**逻辑:**
-- **Git 仓库**：`IS_UPDATE` → `git -C "$PROJECT_DIR" remote get-url origin` 自动获取；首次部署 → 仍交互询问
-- **数据库密码**：`IS_UPDATE` → 跳过（`.env` 保留现有配置）；首次部署 → 仍交互询问
+**更新模式自动检测项:**
+| 项 | 来源 |
+|----|------|
+| Git 仓库 | `git -C "$PROJECT_DIR" remote get-url origin` |
+| 数据库密码 | 跳过（`.env` 已配置） |
+| 域名 | Nginx 配置 `server_name` 读取（过滤 IP） |
+| 公网 IP | `detect_public_ip()` 自动检测 |
+| 项目目录 | `$PROJECT_DIR` 默认值 |
+| SSL | 检测 `/etc/letsencrypt/live/$DOMAIN` 是否已存在 |
 
-**更新流程简化为:**
+**更新流程简化为零交互:**
 ```bash
 cd /root/memorystory && git pull && bash deploy-app.sh
-# 无需再输入 Git 地址和数据库密码，一路确认即可
+# 自动检测所有配置 → 直接开始 8 步更新 → 完成
 ```
 
 **验证:** `bash -n deploy-app.sh` ✓ (syntax OK)

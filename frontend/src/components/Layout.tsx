@@ -48,14 +48,13 @@ export default function Layout() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Pages with hero: let scroll position decide. Others: always glass nav.
+  // Reset nav to correct state on route change.
+  // Hero pages: start transparent (scroll handler will correct if already scrolled).
+  // Non-hero pages: always glass.
   useEffect(() => {
     lastScrollY.current = window.scrollY;
-    if (!hasHero) {
-      setScrolled(true);
-    } else if (window.scrollY <= 0) {
-      setScrolled(false);
-    }
+    setNavVisible(true);
+    setScrolled(!hasHero);
   }, [location.pathname]);
 
   return (

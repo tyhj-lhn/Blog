@@ -1382,6 +1382,47 @@ bg-zinc-50 页面底色
 
 **验证:** tsc ✓ · vite build ✓ (553.87 KB JS, 74.10 KB CSS)
 
+### ✅ Phase 4.22: 博文内容卡片磨砂玻璃 + 四周阴影立体感 (2026-06-22)
+
+**目标:** 博文详情页内容区增加立体感 — 增强磨砂玻璃效果 + 四周均匀扩散阴影。
+
+**设计:**
+- 新增 Design Token `--shadow-glass`：4 层无负 spread 阴影（外框 → 近场 → 中场 → 远场），卡片从页面"浮起"
+- 对比旧 `--shadow-diffuse`：负 spread 收缩在内，仅底部方向可见
+- 文章卡片 `backdrop-blur-md` → `backdrop-blur-xl`：更强模糊 → 磨砂质感更明显
+
+| 文件 | 变更 |
+|------|------|
+| [index.css](frontend/src/index.css) | 新增 `--shadow-glass` token（`@theme` 块内）|
+| [PostDetail.tsx:208](frontend/src/pages/PostDetail.tsx#L208) | article: `backdrop-blur-md`→`backdrop-blur-xl`, `shadow-diffuse`→`shadow-glass` |
+| [PostDetail.tsx:237](frontend/src/pages/PostDetail.tsx#L237) | 评论表单: `shadow-diffuse`→`shadow-glass` |
+| [PostPreview.tsx:23](frontend/src/components/PostPreview.tsx#L23) | 编辑器预览: `shadow-diffuse`→`shadow-glass` |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.86 KB JS, 74.22 KB CSS)
+
+### ✅ Phase 4.23: 导航栏双形态路由切换卡死修复 (2026-06-22)
+
+**Bug:** 从滚动过的页面（如 `/tags` 下滚后）导航到博文页时，导航栏卡在毛玻璃态，不切换为 hero 透明覆叠。
+
+**根因:** `Layout.tsx` 路由切换 effect 有未处理的第三分支：
+
+```typescript
+// Before (有 bug):
+if (!hasHero)       → setScrolled(true)   // 非 Hero 页 → 毛玻璃 ✓
+else if (scrollY<=0) → setScrolled(false) // Hero + 顶部 → 透明 ✓
+// hasHero && scrollY>0 → 什么都不做 → scrolled 保持旧值 ✗
+```
+
+React effect 自底向上执行 — Layout 的 effect 先于 `ScrollToTop.scrollTo(0,0)`，导航到新页面瞬间 `scrollY > 0`，命中第三分支。
+
+**修复:**
+
+| 文件 | 变更 |
+|------|------|
+| [Layout.tsx:54-57](frontend/src/components/Layout.tsx#L54-L57) | route-switch effect 重写：始终设定确定状态 — `setScrolled(!hasHero)` + `setNavVisible(true)`，scroll handler 在后续帧修正 |
+
+**验证:** tsc ✓ · vite build ✓ (553.84 KB JS, 74.22 KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

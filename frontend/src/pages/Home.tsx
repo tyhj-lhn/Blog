@@ -205,7 +205,7 @@ export default function Home() {
 
         {/* Dark overlay — fades in after media loads, preventing grey flash */}
         <div
-          className={`absolute inset-0 bg-zinc-950/40 pointer-events-none transition-opacity duration-500 ${
+          className={`absolute inset-0 bg-zinc-950/25 pointer-events-none transition-opacity duration-500 ${
             mediaLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -250,10 +250,10 @@ export default function Home() {
       </section>
 
       {/* 6px shadow gradient — softens the transition from hero to posts */}
-      <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
+      <div className="h-1.5 bg-linear-to-b from-zinc-950/25 to-zinc-200/60" />
 
       {/* Post grid — light surface, clear contrast with dark hero */}
-      <section ref={postsRef} className="bg-white/80 backdrop-blur-xl px-4 py-12 md:py-16 border-t border-white/40 shadow-diffuse">
+      <section ref={postsRef} className="bg-white/90 backdrop-blur-xl px-4 py-12 md:py-16 border-t border-white/40 shadow-diffuse">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-heading text-3xl text-zinc-900 mb-6">最新文章</h2>
 

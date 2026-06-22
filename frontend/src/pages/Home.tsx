@@ -7,7 +7,7 @@ import type { PaginatedResponse, PostSummary, Tag } from '../types';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import Footer from '../components/Footer';
-import heroVideo from '../../images/Suvan_2k_02b29.mp4';
+import heroVideo from '../../images/Suvan_compressed.mp4';
 
 const PAGE_LIMIT = 6;
 

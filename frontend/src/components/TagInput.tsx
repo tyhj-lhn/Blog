@@ -71,7 +71,7 @@ export default function TagInput({ tags, onChange, placeholder = '输入标签�
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         placeholder={tags.length === 0 ? placeholder : ''}
-        className="flex-1 min-w-[120px] border-none outline-none text-sm bg-transparent py-0.5"
+        className="flex-1 min-w-30 border-none outline-none text-sm bg-transparent py-0.5"
       />
     </div>
   );

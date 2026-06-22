@@ -73,3 +73,6 @@ ecosystem.production.config.cjs
 
 # ===== Misc =====
 *.bak
+
+# ===== Static assets (local only) =====
+frontend/images/

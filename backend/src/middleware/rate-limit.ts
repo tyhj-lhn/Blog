@@ -15,4 +15,8 @@ export const rateLimitPresets = {
     max: 10,
     timeWindow: '1 minute' as const,
   },
+  upload: {
+    max: 20,
+    timeWindow: '1 minute' as const,
+  },
 };

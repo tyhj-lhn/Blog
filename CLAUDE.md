@@ -1251,6 +1251,35 @@ ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
 
 **验证:** backend tsc ✓ · frontend tsc ✓
 
+### ✅ Phase 4.18: 文件上传安全加固 (2026-06-22)
+
+**目标:** 对图片/视频上传端点进行纵深防御强化 — 魔数校验、速率限制、二次文件大小校验。
+
+**改进项:**
+
+| # | 改进 | 文件 | 说明 |
+|---|------|------|------|
+| 1 | 文件魔数（Magic Bytes）校验 | [upload.routes.ts](backend/src/routes/upload.routes.ts) | 读取文件头部 12 字节，与 JPEG (`FF D8 FF`)、PNG (`89 50 4E 47`)、MP4 (`…ftyp`/`…moov`/`…moof`) 的已知特征比对。防止伪造 `Content-Type` 上传非图片/视频文件 |
+| 2 | 上传端点速率限制 | [upload.routes.ts](backend/src/routes/upload.routes.ts) + [rate-limit.ts](backend/src/middleware/rate-limit.ts) | 新增 `upload` 预设：20次/分钟。`POST /api/admin/upload` 应用 `config: { rateLimit: rateLimitPresets.upload }` |
+| 3 | Handler 内二次文件大小校验 | [upload.routes.ts](backend/src/routes/upload.routes.ts) | `data.toBuffer()` 后检查 `buffer.length > MAX_UPLOAD_SIZE`，超限返回 413。multipart 插件层 50MB + handler 层 50MB 双重保护 |
+
+**实现细节:**
+
+| 细节 | 说明 |
+|------|------|
+| 流处理简化 | `pipeline(stream, createWriteStream)` → `data.toBuffer()` + `writeFile()`。端点仅管理员可访问，内存缓冲 50MB 是可接受的权衡 |
+| 魔数通配符 | `0x00` 字节作为通配符（不比对），适配 MP4 ISO BMFF 格式中前 4 字节为可变大小字段 |
+| 未知类型宽容 | `MAGIC_BYTES` 中未注册的 MIME 类型默认放行（不拒绝未来的新格式） |
+| 清理旧导入 | 移除 `pipeline`、`Readable`、`Transform` 导入（不再需要） |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [upload.routes.ts](backend/src/routes/upload.routes.ts) | 重写 POST handler — `toBuffer()` + 魔数校验 + 二次大小校验 + 速率限制；移除 `pipeline` 相关流处理代码 |
+| [rate-limit.ts](backend/src/middleware/rate-limit.ts) | 新增 `upload` preset（20次/分钟） |
+
+**验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

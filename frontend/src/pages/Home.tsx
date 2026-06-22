@@ -176,6 +176,8 @@ export default function Home() {
               muted
               playsInline
               onLoadedData={handleMediaLoaded}
+              onCanPlayThrough={handleMediaLoaded}
+              preload="auto"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
           ) : (
@@ -194,7 +196,9 @@ export default function Home() {
             loop
             muted
             playsInline
+            preload="auto"
             onLoadedData={handleMediaLoaded}
+            onCanPlayThrough={handleMediaLoaded}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         )}

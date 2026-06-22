@@ -52,7 +52,7 @@ export default function AdminLogin() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="admin@memorystory.dev"
               maxLength={255}
               required
               autoFocus

@@ -1212,6 +1212,45 @@ PM2 启动 node boot.cjs          ← CJS 入口，PM2 完全兼容
 
 **验证:** backend tsc ✓ · frontend tsc ✓ · bash -n ✓ · git push ✓
 
+### ✅ Phase 4.17: 首页视频卡顿 + 标签搜索 + 登录占位符修复 (2026-06-22)
+
+**Bug #1 — 默认壁纸不显示（LFS 指针文件）：**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 首页默认视频壁纸一片黑 | `Suvan_2k_02b29.mp4` 被 Git LFS 追踪，服务器 `git clone` 后只拿到了 134 字节的 LFS 指针文件（`version https://git-lfs.github.com/…`），`<video>` 无法解码文本文件 | 服务器执行 `git lfs install && git lfs pull` 拉取实际视频（16.2 MB） |
+
+**Bug #2 — 视频卡顿严重：**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 16MB 2K 视频在 hero 背景播放，首次缓冲极慢，播放中频繁卡顿 | 原始视频 2K 分辨率 + 高码率，客户端下载速度远低于理论带宽，缓冲区耗尽即卡 | ① 服务器用 ffmpeg 压缩至 720p（crf 28 + faststart）→ ≤5MB；② 前端 `<video>` 加 `preload="auto"` + `onCanPlayThrough` 回调 |
+
+```bash
+# 服务器端压缩命令
+ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
+  -vf "scale=-2:720" -c:v libx264 -crf 28 -preset fast \
+  -c:a aac -b:a 48k -movflags +faststart \
+  frontend/images/Suvan_compressed.mp4
+```
+
+**Bug #3 — 英文标签搜索无结果：**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 标签页点击英文标签（如 `UI/UX`）跳转搜索页，但搜不出对应文章 | [posts.routes.ts:133-136](backend/src/routes/posts.routes.ts#L133-L136) `GET /api/search` 的 `OR` 只搜 `title` + `content`（`contains` + `insensitive`），不搜 `tags` 数组。英文标签在中文标题和正文中完全是另一个词 | `OR` 新增 `{ tags: { has: q } }` — 精确标签匹配 |
+
+**Bug #4 — 登录页 placeholder 误导：**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 用户看到 placeholder `admin@example.com` → 输入此邮箱 → `Invalid credentials` | seed.ts 创建的 admin 邮箱是 `admin@memorystory.dev`，placeholder 写的是 `admin@example.com` | [AdminLogin.tsx:55](frontend/src/pages/admin/AdminLogin.tsx#L55) placeholder 改为 `admin@memorystory.dev` |
+
+**文件变更：**
+| 文件 | 变更 |
+|------|------|
+| [posts.routes.ts](backend/src/routes/posts.routes.ts) | 搜索 OR 新增 `{ tags: { has: q } }` |
+| [Home.tsx](frontend/src/pages/Home.tsx) | 两个 `<video>` 加 `preload="auto"` + `onCanPlayThrough` |
+| [AdminLogin.tsx](frontend/src/pages/admin/AdminLogin.tsx) | placeholder 邮箱修正 |
+
+**验证:** backend tsc ✓ · frontend tsc ✓
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

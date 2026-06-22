@@ -131,6 +131,7 @@ export default async function postsRoutes(fastify: FastifyInstance): Promise<voi
         OR: [
           { title: { contains: q, mode: 'insensitive' as const } },
           { content: { contains: q, mode: 'insensitive' as const } },
+          { tags: { has: q } },
         ],
       },
       select: summarySelect,

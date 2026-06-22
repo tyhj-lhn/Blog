@@ -75,4 +75,6 @@ ecosystem.production.config.cjs
 *.bak
 
 # ===== Static assets (local only) =====
-frontend/images/
+frontend/images/*.mp4
+frontend/images/*.mov
+frontend/images/*.webm

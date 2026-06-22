@@ -253,7 +253,7 @@ export default function Home() {
       <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Post grid — light surface, clear contrast with dark hero */}
-      <section ref={postsRef} className="bg-white px-4 py-12 md:py-16">
+      <section ref={postsRef} className="bg-white/80 backdrop-blur-xl px-4 py-12 md:py-16 border-t border-white/40 shadow-diffuse">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-heading text-3xl text-zinc-900 mb-6">最新文章</h2>
 
@@ -305,7 +305,7 @@ export default function Home() {
             </div>
 
             {/* Right: tag sidebar (desktop only) */}
-            <aside className="hidden lg:block w-48 shrink-0">
+            <aside className="select-none cursor-default hidden lg:block w-48 shrink-0">
               <div className="sticky top-20">
                 <h3 className="font-heading text-lg text-zinc-900 mb-4 flex items-center gap-2">
                   <TagIcon size={18} />
@@ -340,7 +340,7 @@ export default function Home() {
                         <Link
                           key={t.tag}
                           to={`/search?q=${encodeURIComponent(t.tag)}`}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border shadow-soft transition-all duration-200 cursor-pointer hover:shadow-card"
+                          className="select-none inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border shadow-soft transition-all duration-200 cursor-pointer hover:shadow-card"
                           style={{
                             backgroundColor: c.bg,
                             borderColor: c.border,

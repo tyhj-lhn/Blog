@@ -60,7 +60,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-zinc-50 font-body text-zinc-950">
       <nav
-        className={`fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 transition-all duration-300 ${
+        className={`select-none cursor-default fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 transition-all duration-300 ${
           scrolled
             ? 'bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-[0_4px_16px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]'
             : 'bg-transparent backdrop-blur-sm shadow-[0_1px_2px_rgba(0,0,0,0.12),0_2px_4px_rgba(0,0,0,0.06)]'

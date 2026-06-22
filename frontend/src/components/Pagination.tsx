@@ -20,7 +20,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
   }
 
   return (
-    <nav className="flex items-center justify-center gap-1 mt-8" aria-label="分页导航">
+    <nav className="select-none cursor-default flex items-center justify-center gap-1 mt-8" aria-label="分页导航">
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}

@@ -36,7 +36,7 @@ export default function TagsPage() {
             <Link
               key={tag.tag}
               to={`/search?q=${encodeURIComponent(tag.tag)}`}
-              className="inline-flex items-center gap-2 min-h-11 px-5 rounded-full border border-zinc-200/70 bg-white text-sm text-zinc-700 shadow-soft hover:shadow-card hover:border-zinc-300/80 hover:text-blue-600 hover:bg-blue-50/70 transition-all duration-300 cursor-pointer"
+              className="select-none inline-flex items-center gap-2 min-h-11 px-5 rounded-full border border-zinc-200/70 bg-white text-sm text-zinc-700 shadow-soft hover:shadow-card hover:border-zinc-300/80 hover:text-blue-600 hover:bg-blue-50/70 transition-all duration-300 cursor-pointer"
             >
               <TagIcon size={14} />
               <span>{tag.tag}</span>

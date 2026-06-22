@@ -110,7 +110,7 @@ export default function PostDetail() {
         </section>
         {/* Content skeleton */}
         <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
-        <section className="bg-white px-4 py-12 md:py-16">
+        <section className="bg-white/80 backdrop-blur-xl px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto animate-pulse space-y-4">
             <div className="h-4 bg-zinc-200 rounded w-full" />
             <div className="h-4 bg-zinc-200 rounded w-full" />
@@ -130,7 +130,7 @@ export default function PostDetail() {
           </div>
         </section>
         <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
-        <section className="bg-white px-4 py-12">
+        <section className="bg-white/80 backdrop-blur-xl px-4 py-12">
           <div className="max-w-4xl mx-auto">
             <p className="text-zinc-500 text-center py-12">该文章可能已被删除或地址不正确</p>
           </div>
@@ -164,7 +164,7 @@ export default function PostDetail() {
           <h1 className="font-heading text-4xl md:text-5xl text-white mb-4 drop-shadow-lg">
             {post.title}
           </h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
+          <div className="select-none cursor-default flex flex-wrap items-center gap-4 text-sm text-white/70">
             <span className="flex items-center gap-1.5">
               <Calendar size={14} />
               {formatDate(post.createdAt)}
@@ -203,7 +203,7 @@ export default function PostDetail() {
       <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Article content — white surface below */}
-      <section className="bg-white px-4 py-8 md:py-12">
+      <section className="bg-white/80 backdrop-blur-xl px-4 py-8 md:py-12 border-t border-white/40 shadow-diffuse">
         <div className="max-w-4xl mx-auto">
           <article>
             <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
@@ -234,7 +234,7 @@ export default function PostDetail() {
               评论 {comments.length > 0 && `(${comments.length})`}
             </h2>
 
-            <div className="mb-8 p-4 border border-zinc-200 rounded-lg bg-white">
+            <div className="mb-8 p-4 border border-white/40 rounded-2xl bg-white/80 backdrop-blur-xl shadow-diffuse">
               <CommentForm
                 onSubmit={async (data) => {
                   await submitComment.mutateAsync(data);

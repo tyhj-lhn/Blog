@@ -83,7 +83,7 @@ export default function AdminLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-64 bg-zinc-900 text-zinc-100 flex flex-col z-50 transition-transform duration-300 ${
+        className={`select-none cursor-default fixed left-0 top-0 bottom-0 w-64 bg-zinc-900 text-zinc-100 flex flex-col z-50 transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -180,7 +180,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Mobile top bar with hamburger */}
-      <div className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-zinc-200 flex items-center px-4 z-30 lg:hidden">
+      <div className="select-none cursor-default fixed top-0 left-0 right-0 h-14 bg-white border-b border-zinc-200 flex items-center px-4 z-30 lg:hidden">
         <button
           onClick={() => setSidebarOpen(true)}
           className="min-w-11 min-h-11 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer"

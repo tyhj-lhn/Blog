@@ -23,7 +23,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   return (
-    <article className="group border border-zinc-200/70 rounded-2xl overflow-hidden bg-white shadow-card hover:shadow-card-hover hover:border-zinc-300/80 transition-all duration-300">
+    <article className="group border border-white/40 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm shadow-diffuse hover:shadow-diffuse hover:border-zinc-300/80 hover:bg-white/90 transition-all duration-300">
       {/* Cover image */}
       <Link to={`/post/${post.slug}`} className="block relative aspect-video bg-zinc-100 overflow-hidden">
         {post.coverImage ? (
@@ -50,7 +50,7 @@ export default function PostCard({ post }: PostCardProps) {
         </Link>
 
         {/* Meta row: date | views | comments | likes */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 mb-3">
+        <div className="select-none cursor-default flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-400 mb-3">
           <span className="flex items-center gap-1.5 min-w-11">
             <Calendar size={14} className="shrink-0" />
             {formatDate(post.createdAt)}
@@ -83,7 +83,7 @@ export default function PostCard({ post }: PostCardProps) {
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2.5 py-0.5 text-xs rounded-full bg-zinc-100/80 text-zinc-500 border border-zinc-200/60"
+                className="select-none cursor-default px-2.5 py-0.5 text-xs rounded-full bg-zinc-100/80 text-zinc-500 border border-zinc-200/60"
               >
                 {tag}
               </span>

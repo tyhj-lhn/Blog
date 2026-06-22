@@ -1280,6 +1280,46 @@ ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
 
 **验证:** backend tsc ✓ · frontend tsc ✓ · ESLint 0 ✓ · vite build ✓
 
+### ✅ Phase 4.19: UI 打磨 — 文本选择 / 光标 / 毛玻璃内容区 (2026-06-22)
+
+**目标:** 修复鼠标框选时 UI chrome 文字被选中、`<select>` 错误显示 I 型光标、内容区与背景粘在一起。
+
+**Bug #1 — UI chrome 文字被框选:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 拖选导航栏、按钮、标签芯片时文字高亮 | 项目中零个 `select-none` 类 | 9 个文件 12 处 UI 容器添加 `select-none cursor-default`：Layout nav、AdminLayout sidebar + mobile bar、Footer、Pagination、MarkdownToolbar、PostCard meta row + tag chips、PostDetail hero meta row、Home tag sidebar + tag chips、TagsPage tag chips |
+
+**Bug #2 — `<select>` 显示 I 型光标:**
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 管理后台状态下拉框显示文本光标 | [index.css](frontend/src/index.css) 全局规则把 `select` 和 `input`/`textarea` 一起设为 `cursor: text` | 从 `cursor: text` 规则中移除 `select`，新增 `select { cursor: default; }` 显式声明 |
+
+**功能 — 内容区毛玻璃 + 阴影扩散:**
+
+| 区域 | 旧 | 新 |
+|------|----|----|
+| PostDetail 内容区 | `bg-white` | `bg-white/80 backdrop-blur-xl shadow-diffuse border-t border-white/40` |
+| PostDetail 评论表单容器 | `border-zinc-200 rounded-lg bg-white` | `border-white/40 rounded-2xl bg-white/80 backdrop-blur-xl shadow-diffuse` |
+| PostCard 卡片 | `bg-white shadow-card` | `bg-white/80 backdrop-blur-sm shadow-diffuse` |
+| PostPreview 外层 | `border-zinc-200 rounded-lg bg-white` | `border-white/40 rounded-2xl bg-white/80 backdrop-blur-xl shadow-diffuse` |
+| Home 博文列表 | `bg-white` | `bg-white/80 backdrop-blur-xl shadow-diffuse border-t border-white/40` |
+| CommentForm 输入框 ×4 | `bg-white` | `bg-white/70 backdrop-blur-sm` |
+
+**新 Design Token:**
+| Token | 值 |
+|-------|----|
+| `--shadow-diffuse` | `0 4px 24px -4px rgba(0,0,0,0.08), 0 8px 32px -8px rgba(0,0,0,0.06)` |
+
+**设计决策:**
+- 毛玻璃方案参考 Layout nav 已有的 `bg-white/70 backdrop-blur-xl` 模式，统一视觉语言
+- `bg-white/80` 在 `bg-zinc-50` 页面背景下保证文本可读性（WCAG AA 对比度以上）
+- PostCard 用 `backdrop-blur-sm`（轻量），大块内容区用 `backdrop-blur-xl`（深度分离感）
+- `rounded-2xl` 替代部分 `rounded-lg`，与 PostCard 一致
+
+**文件变更:** 12 个文件，+32 -25 行
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.71 KB JS, 73.07 KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

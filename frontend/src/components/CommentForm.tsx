@@ -81,7 +81,7 @@ export default function CommentForm({ onSubmit, parentId, onCancel }: CommentFor
           placeholder="用户名 *"
           maxLength={50}
           required
-          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
         />
         <input
           type="email"
@@ -89,7 +89,7 @@ export default function CommentForm({ onSubmit, parentId, onCancel }: CommentFor
           onChange={(e) => setEmail(e.target.value)}
           placeholder="邮箱 (可选)"
           maxLength={255}
-          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
         />
         <input
           type="url"
@@ -97,7 +97,7 @@ export default function CommentForm({ onSubmit, parentId, onCancel }: CommentFor
           onChange={(e) => setWebsiteUrl(e.target.value)}
           placeholder="网站 (可选)"
           maxLength={500}
-          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+          className="min-h-11 px-3 rounded-lg border border-zinc-200 bg-white/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
         />
       </div>
       <textarea
@@ -107,7 +107,7 @@ export default function CommentForm({ onSubmit, parentId, onCancel }: CommentFor
         maxLength={10000}
         required
         rows={4}
-        className="w-full min-h-11 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
+        className="w-full min-h-11 px-3 py-2 rounded-lg border border-zinc-200 bg-white/70 backdrop-blur-sm text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow duration-150"
       />
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <button

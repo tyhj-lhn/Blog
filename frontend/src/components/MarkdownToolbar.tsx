@@ -96,7 +96,7 @@ const BUTTONS: ToolbarButton[] = [
 export default function MarkdownToolbar({ onAction }: MarkdownToolbarProps) {
   return (
     <div
-      className="flex flex-wrap items-center gap-0.5 border border-zinc-200 border-b-0 rounded-t-lg bg-zinc-50 px-1.5 py-1"
+      className="select-none cursor-default flex flex-wrap items-center gap-0.5 border border-zinc-200 border-b-0 rounded-t-lg bg-zinc-50 px-1.5 py-1"
       role="toolbar"
       aria-label="Markdown 格式工具栏"
     >

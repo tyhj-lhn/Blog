@@ -20,7 +20,7 @@ function todayString(): string {
 
 export default function PostPreview({ title, content, coverImage, tags }: PostPreviewProps) {
   return (
-    <div className="mt-4 border border-zinc-200 rounded-lg bg-white overflow-hidden">
+    <div className="mt-4 border border-white/40 rounded-2xl bg-white/80 backdrop-blur-xl shadow-diffuse overflow-hidden">
       {/* Header */}
       <div className="px-4 pt-3 pb-2 bg-zinc-50/80 border-b border-zinc-100">
         <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
@@ -69,7 +69,7 @@ export default function PostPreview({ title, content, coverImage, tags }: PostPr
       <div className="h-1.5 bg-linear-to-b from-zinc-950/40 to-zinc-200/60" />
 
       {/* Content area — mirrors PostDetail prose rendering */}
-      <section className="bg-white px-4 py-6">
+      <section className="px-4 py-6">
         <div className="prose prose-zinc prose-sm max-w-none text-zinc-800 leading-relaxed">
           {content ? (
             <ReactMarkdown

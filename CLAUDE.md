@@ -1233,7 +1233,7 @@ PM2 启动 node boot.cjs          ← CJS 入口，PM2 完全兼容
 ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
   -vf "scale=-2:720" -c:v libx264 -crf 28 -preset fast \
   -c:a aac -b:a 48k -movflags +faststart \
-  frontend/images/Suvan_compressed.mp4
+  frontend/images/Suvan_1080p.mp4
 ```
 
 **Bug #3 — 英文标签搜索无结果：**
@@ -1517,15 +1517,15 @@ PROJECT_DIR=/var/www/memorystory bash update.sh             # 指定目录
 |------|------|------|
 | [Home.tsx](frontend/src/pages/Home.tsx) | 两个 `<video>` 移除 `preload="auto"` | autoplay 场景下 preload 被忽略，多余属性 |
 | [Home.tsx](frontend/src/pages/Home.tsx) | 两个 `<video>` 移除 `onCanPlayThrough` | 155MB 文件触发此事件需缓冲接近完整文件，导致遮罩永远不显示 |
-| [Home.tsx:10](frontend/src/pages/Home.tsx#L10) | import → `Suvan_compressed.mp4` | 指向待压缩的 720p 版本 |
-| [compress-video.sh](compress-video.sh) | **新建** | ffmpeg 压缩脚本：2K→720p，155MB→~5MB。CRF 28 + faststart |
+| [Home.tsx:10](frontend/src/pages/Home.tsx#L10) | import → `Suvan_1080p.mp4` | 最终指向 1080p 压缩版 |
+| [compress-video.sh](compress-video.sh) | **新建** | ffmpeg 压缩脚本（已更新为 1080p 目标） |
 
 **压缩命令 (compress-video.sh):**
 ```bash
 ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
   -vf "scale=-2:720" -c:v libx264 -crf 28 -preset fast \
   -c:a aac -b:a 48k -movflags +faststart \
-  frontend/images/Suvan_compressed.mp4
+  frontend/images/Suvan_1080p.mp4
 ```
 
 **解决步骤:**
@@ -1537,14 +1537,54 @@ winget install ffmpeg
 bash compress-video.sh
 
 # 3. 验证 (文件应 ~3-5MB)
-ls -lh frontend/images/Suvan_compressed.mp4
+ls -lh frontend/images/Suvan_1080p.mp4
 
 # 4. 重新构建
 cd frontend && npm run build
 # dist 中视频应从 162MB → ~5MB
 ```
 
-**验证:** tsc ✓ · vite build ✓ (视频 162MB，压缩后 ~5MB)
+**验证:** tsc ✓ · vite build ✓
+
+### ✅ Phase 4.27: 视频壁纸 1080p 压缩 + Git LFS 跟踪 (2026-06-23)
+
+**问题:** 用户反馈背景不显示，视频需压缩至 1080p 左右。
+
+**处理过程:**
+
+| # | 步骤 | 操作 |
+|---|------|------|
+| 1 | 原始视频确认 | `Suvan_2k_02b29.mp4` — 155MB，2560×1440，60fps，H.264 |
+| 2 | ffmpeg 压缩 | `scale=-2:1080` + CRF 28 → `Suvan_1080p.mp4` — 10MB，1920×1080，60fps |
+| 3 | 构建验证 | vite build ✓，构建产物中视频 10.5MB |
+| 4 | Git LFS 提交 | `.mp4` 文件通过 `.gitattributes` 自动走 LFS |
+
+**文件变更:**
+
+| 文件 | 变更 |
+|------|------|
+| [Home.tsx:10](frontend/src/pages/Home.tsx#L10) | import `Suvan_1080p.mp4` |
+| [Suvan_1080p.mp4](frontend/images/Suvan_1080p.mp4) | **新增** — 10MB 1080p H.264 视频（Git LFS） |
+
+**images/ 目录当前状态:**
+
+| 文件 | 大小 | 用途 | Git |
+|------|------|------|-----|
+| `Suvan_2k_02b29.mp4` | 155MB | 原始 2K 源文件 | LFS 跟踪 |
+| `Suvan_1080p.mp4` | 10MB | 生产用 1080p | LFS 跟踪 |
+| `.gitkeep` | 0B | 目录占位 | 普通文件 |
+
+**视频对比:**
+
+| 属性 | 原始 2K | 压缩 1080p |
+|------|---------|------------|
+| 分辨率 | 2560×1440 | 1920×1080 |
+| 大小 | 155MB | 10MB (93.5% 减少) |
+| 帧率 | 60fps | 60fps |
+| 编码 | H.264 | H.264 + faststart |
+| 音频 | AAC 193kbps | AAC 48kbps |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.76 KB JS, 74.23 KB CSS, 10.5MB 视频)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

@@ -1030,6 +1030,13 @@ collect_inputs() {
     echo ""
 
     # Git 仓库
+    if $IS_UPDATE; then
+        # 更新模式：从已有仓库自动获取
+        GIT_REPO=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || echo "")
+        if [[ -n "$GIT_REPO" ]]; then
+            info "Git 仓库 (自动检测): ${GIT_REPO}"
+        fi
+    fi
     if [[ -z "$GIT_REPO" ]]; then
         GIT_REPO=$(prompt_required "Git 仓库地址 (如 https://github.com/user/repo.git)")
     else
@@ -1037,7 +1044,11 @@ collect_inputs() {
     fi
 
     # 数据库密码
-    if [[ -z "$DB_PASSWORD" ]]; then
+    if $IS_UPDATE; then
+        # 更新模式：.env 已配置，无需密码
+        DB_PASSWORD="(保留现有配置)"
+        info "数据库密码: 保留现有 .env 配置"
+    elif [[ -z "$DB_PASSWORD" ]]; then
         DB_PASSWORD=$(prompt_required "数据库密码 (setup-server.sh 输出的密码)")
     else
         info "数据库密码: *** (来自命令行参数)"

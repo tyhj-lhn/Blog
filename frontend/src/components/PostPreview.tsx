@@ -72,7 +72,19 @@ export default function PostPreview({ title, content, coverImage, tags }: PostPr
       <section className="bg-white px-4 py-6">
         <div className="prose prose-zinc prose-sm max-w-none text-zinc-800 leading-relaxed">
           {content ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{
+                img: ({ src, alt }) => (
+                  <img
+                    src={src}
+                    alt={alt ?? ''}
+                    className="max-w-full h-auto"
+                    loading="lazy"
+                  />
+                ),
+              }}
+            >
               {content}
             </ReactMarkdown>
           ) : (

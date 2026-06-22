@@ -207,7 +207,19 @@ export default function PostDetail() {
         <div className="max-w-4xl mx-auto">
           <article>
             <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  img: ({ src, alt }) => (
+                    <img
+                      src={src}
+                      alt={alt ?? ''}
+                      className="max-w-full h-auto"
+                      loading="lazy"
+                    />
+                  ),
+                }}
+              >
                 {post.content}
               </ReactMarkdown>
             </div>

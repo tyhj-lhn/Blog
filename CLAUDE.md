@@ -1320,6 +1320,49 @@ ffmpeg -i frontend/images/Suvan_2k_02b29.mp4 \
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.71 KB JS, 73.07 KB CSS)
 
+### ✅ Phase 4.20: 博文内容毛玻璃卡片 + 导航栏双形态扩展 (2026-06-22)
+
+**目标:** 博文正文用独立毛玻璃卡片包裹，与 section 背景形成双层玻璃层次；PostDetail 页导航栏与首页一致的双形态（透明覆叠 hero + 下滚毛玻璃）。
+
+**PostDetail — 文章正文独立毛玻璃卡片:**
+
+| 变更 | 旧 | 新 |
+|------|----|----|
+| `article` 容器 | 无样式 | `border border-white/40 rounded-2xl bg-white/70 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12` |
+| prose 内部 margin | `mb-12` 在 prose div 上 | 移至 article 外层（卡片与评论区间距） |
+
+**视觉层次（三层玻璃递进）:**
+```
+bg-zinc-50 页面底色
+  → section: bg-white/80 backdrop-blur-xl (页面级毛玻璃)
+    → article: bg-white/70 backdrop-blur-md rounded-2xl (文章卡片毛玻璃)
+```
+
+**Layout — 导航栏双形态扩展到博文页:**
+
+| 变更 | 说明 |
+|------|------|
+| `isPostDetail` 路径检测 | `location.pathname.startsWith('/post/')` |
+| `hasHero = isHome \|\| isPostDetail` | 替代原 `isHome` — 有 hero 的页面都用透明 nav |
+| `hasHeroRef` | 替代原 `isHomeRef` — scroll handler 中判断 scrolled 状态 |
+| 初始 scrolled | `!hasHero \|\| window.scrollY > 0` — hero 页默认透明，非 hero 页默认毛玻璃 |
+| 路由切换 effect | 依赖 `[hasHero]` 替代 `[isHome]` |
+
+**双形态导航栏页面:**
+| 页面 | hero | 顶部导航 |
+|------|------|----------|
+| `/` | 视频/图片 hero | 透明覆叠 → 下滚毛玻璃 |
+| `/post/:slug` | 封面图 hero | 透明覆叠 → 下滚毛玻璃 |
+| `/tags`, `/guestbook`, `/about`, `/search` | 无 hero | 始终毛玻璃 |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | article 变独立毛玻璃卡片（`bg-white/70 backdrop-blur-md shadow-diffuse rounded-2xl p-6 md:p-10`），`mb-12` 从 prose div 移至 article |
+| [Layout.tsx](frontend/src/components/Layout.tsx) | `isHome` → `hasHero = isHome \|\| isPostDetail`，ref + scroll handler + route-switch effect 全部用 `hasHero` |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.86 KB JS, 73.74 KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

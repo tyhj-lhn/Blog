@@ -7,14 +7,16 @@ const NAV_HIDE_THRESHOLD = 80;
 export default function Layout() {
   const location = useLocation();
   const isHome = location.pathname === '/';
-  const isHomeRef = useRef(isHome);
+  const isPostDetail = location.pathname.startsWith('/post/');
+  const hasHero = isHome || isPostDetail;
+  const hasHeroRef = useRef(hasHero);
   const [navVisible, setNavVisible] = useState(true);
-  const [scrolled, setScrolled] = useState(() => !isHome || window.scrollY > 0);
+  const [scrolled, setScrolled] = useState(() => !hasHero || window.scrollY > 0);
   const lastScrollY = useRef(0);
 
-  // Keep ref in sync with isHome (not during render — satisfies react-hooks/refs)
+  // Keep ref in sync with hasHero (not during render — satisfies react-hooks/refs)
   useEffect(() => {
-    isHomeRef.current = isHome;
+    hasHeroRef.current = hasHero;
   });
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function Layout() {
       requestAnimationFrame(() => {
         const currentY = window.scrollY;
 
-        setScrolled(isHomeRef.current ? currentY > 0 : true);
+        setScrolled(hasHeroRef.current ? currentY > 0 : true);
 
         if (currentY <= 0) {
           setNavVisible(true);
@@ -46,16 +48,16 @@ export default function Layout() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Non-home pages: always show glass nav. Home page: let scroll position decide.
+  // Pages with hero: let scroll position decide. Others: always glass nav.
   useEffect(() => {
     requestAnimationFrame(() => {
-      if (!isHome) {
+      if (!hasHero) {
         setScrolled(true);
       } else if (window.scrollY <= 0) {
         setScrolled(false);
       }
     });
-  }, [isHome]);
+  }, [hasHero]);
 
   return (
     <div className="min-h-screen bg-zinc-50 font-body text-zinc-950">

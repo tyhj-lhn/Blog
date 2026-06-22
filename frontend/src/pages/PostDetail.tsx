@@ -205,8 +205,8 @@ export default function PostDetail() {
       {/* Article content — white surface below */}
       <section className="bg-white/80 backdrop-blur-xl px-4 py-8 md:py-12 border-t border-white/40 shadow-diffuse">
         <div className="max-w-4xl mx-auto">
-          <article>
-            <div className="prose prose-zinc max-w-none mb-12 leading-relaxed text-zinc-800">
+          <article className="border border-white/40 rounded-2xl bg-white/70 backdrop-blur-md shadow-diffuse p-6 md:p-10 mb-12">
+            <div className="prose prose-zinc max-w-none leading-relaxed text-zinc-800">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}
                 components={{

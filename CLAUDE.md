@@ -1724,6 +1724,59 @@ cd frontend && npm run build
 
 **验证:** tsc ✓ · ESLint 0 ✓
 
+### ✅ Phase 4.32: 封面图裁剪工具 — react-easy-crop 集成 (2026-06-23)
+
+**目标:** 上传封面图后弹出裁剪对话框，蓝色实线框 = 桌面端 hero 显示范围，可拖拽移动 + 滚轮缩放。
+
+**依赖:**
+| 包 | 版本 | 用途 |
+|----|------|------|
+| `react-easy-crop` | `^5.5.0` (安装 6.0.2) | 图片裁剪 React 组件 |
+
+**新增文件:**
+| 文件 | 用途 |
+|------|------|
+| [CropDialog.tsx](frontend/src/components/CropDialog.tsx) | 裁剪模态框 — 3:1 固定比例蓝线框、缩放滑条、确认/取消 |
+| [cropImage.ts](frontend/src/lib/cropImage.ts) | Canvas 裁剪工具 — `getCroppedBlob(imageUrl, pixelCrop)` → JPEG Blob |
+
+**修改文件:**
+| 文件 | 变更 |
+|------|------|
+| [main.tsx](frontend/src/main.tsx) | 添加 `import 'react-easy-crop/react-easy-crop.css'` |
+| [CoverImageUpload.tsx](frontend/src/components/CoverImageUpload.tsx) | 重写 — 文件选择 → CropDialog 裁剪 → api.upload 上传；拖拽上传区 + 预览含 hover 操作层 |
+| [index.css](frontend/src/index.css) | 新增 `fadeIn` / `scaleIn` 关键帧动画 |
+| [package.json](frontend/package.json) | 新增 `react-easy-crop: ^5.5.0` |
+| [package-lock.json](frontend/package-lock.json) | lockfile 更新 |
+
+**数据流:**
+```
+PostEditor.tsx                    ← coverImage state + setCoverImage
+  → CoverImageUpload.tsx          ← 文件选择/拖拽 → pendingFile → showCropDialog
+    → CropDialog.tsx              ← FileReader → data URL → Cropper (3:1, rect, cover)
+      → cropImage.ts              ← Canvas drawImage → JPEG Blob
+        → api.upload              ← FormData → POST /api/admin/upload
+          → onChange(url)         ← 回写 PostEditor.coverImage
+```
+
+**CropDialog API:**
+| Prop | 值 | 说明 |
+|------|-----|------|
+| `aspect` | `3 / 1` | 桌面端 hero 比例 (~3.2:1～3.6:1) |
+| `cropShape` | `"rect"` | 矩形裁剪 |
+| `objectFit` | `"cover"` | v6 默认 contain → 显式 cover（图片填满裁剪框） |
+| `showGrid` | `false` | 无网格，蓝线框更干净 |
+| `cropAreaClassName` | `!border-[3px] !border-blue-500 !shadow-[0_0_0_9999px_rgba(0,0,0,0.15)]` | 蓝色 3px 实线 + 15% 轻遮罩 |
+
+**踩坑记录:**
+| # | Bug | 根因 | 修复 |
+|---|-----|------|------|
+| 1 | 裁剪框不可见（仅滑条） | `react-easy-crop.css` 未 import | [main.tsx](frontend/src/main.tsx) 加 import |
+| 2 | 图片闪现一帧后消失 | `flex-1 min-h-0` 容器 absolute 子元素后高度塌为 0 | `min-h-0` → `min-h-64` |
+| 3 | v6 `objectFit` 默认 contain | v5→v6 breaking change，contain 在 3:1 比例下图片极度缩小 | 显式 `objectFit="cover"` |
+| 4 | `coverImage` 空字符串触发 `format: 'uri'` 校验 | schema 不兼容空字符串 | 已修复（Phase 4.7），PostEditor `buildPayload` 中 `trim() \|\| null` |
+
+**验证:** tsc ✓ · ESLint 0 (CropDialog.tsx) · vite build ✓ (592KB JS, 79KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

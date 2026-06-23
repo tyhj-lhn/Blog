@@ -55,3 +55,20 @@ select:not(:focus):hover,
   border-color: #a1a1aa;
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
 }
+
+/* Crop modal entrance animations — respects prefers-reduced-motion */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

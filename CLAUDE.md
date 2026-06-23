@@ -1731,7 +1731,7 @@ cd frontend && npm run build
 **依赖:**
 | 包 | 版本 | 用途 |
 |----|------|------|
-| `react-easy-crop` | `^5.5.0` (安装 6.0.2) | 图片裁剪 React 组件 |
+| `react-easy-crop` | `^6.0.2` | 图片裁剪 React 组件 |
 
 **新增文件:**
 | 文件 | 用途 |
@@ -1745,7 +1745,7 @@ cd frontend && npm run build
 | [main.tsx](frontend/src/main.tsx) | 添加 `import 'react-easy-crop/react-easy-crop.css'` |
 | [CoverImageUpload.tsx](frontend/src/components/CoverImageUpload.tsx) | 重写 — 文件选择 → CropDialog 裁剪 → api.upload 上传；拖拽上传区 + 预览含 hover 操作层 |
 | [index.css](frontend/src/index.css) | 新增 `fadeIn` / `scaleIn` 关键帧动画 |
-| [package.json](frontend/package.json) | 新增 `react-easy-crop: ^5.5.0` |
+| [package.json](frontend/package.json) | 新增 `react-easy-crop: ^6.0.2`（2026-06-23 修复：原 `^5.5.0` 与 lockfile `6.0.2` 不匹配导致 `npm ci` 失败） |
 | [package-lock.json](frontend/package-lock.json) | lockfile 更新 |
 
 **数据流:**

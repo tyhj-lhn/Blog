@@ -49,6 +49,8 @@ const POEMS = [
   '醉后不知天在水，满船清梦压星河。',
 ];
 
+const MUTED_KEY = 'memorystory_wallpaper_muted';
+
 const TYPING_SPEED = 100;
 const DELETING_SPEED = 50;
 const PAUSE_AFTER_TYPED = 3000;
@@ -58,8 +60,28 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const postsRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(() => {
+    try {
+      return localStorage.getItem(MUTED_KEY) !== 'false'; // default true (muted)
+    } catch {
+      return true;
+    }
+  });
   const [mediaLoaded, setMediaLoaded] = useState(false);
+
+  // Restore unmuted audio on mount (e.g. back-navigation from post detail)
+  useEffect(() => {
+    if (muted) return;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = false;
+    if (video.paused) {
+      video.play().catch(() => {
+        video.muted = true;
+        setMuted(true);
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Typewriter effect ──
   const [typedText, setTypedText] = useState('');
@@ -141,11 +163,12 @@ export default function Home() {
     if (!video) return;
     video.muted = !video.muted;
     setMuted(video.muted);
+    try { localStorage.setItem(MUTED_KEY, String(video.muted)); } catch { /* noop — localStorage unavailable */ }
     if (!video.muted && video.paused) {
       video.play().catch(() => {
-        // Revert mute state if playback failed (e.g., autoplay policy)
         video.muted = true;
         setMuted(true);
+        try { localStorage.setItem(MUTED_KEY, 'true'); } catch { /* noop */ }
       });
     }
   }, []);

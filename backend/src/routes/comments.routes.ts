@@ -45,7 +45,7 @@ export default async function commentsRoutes(fastify: FastifyInstance): Promise<
     if (!post) throw notFound('Post');
 
     const flat = await threadedQuery(postId);
-    return { data: buildCommentTree(flat), total: flat.length };
+    return { data: buildCommentTree(flat).reverse(), total: flat.length };
   });
 
   // POST /api/comments — create (public, no auth needed)

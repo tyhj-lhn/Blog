@@ -1698,8 +1698,31 @@ cd frontend && npm run build
 | 文件 | 变更 |
 |------|------|
 | [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | comments query 加 `refetchInterval: 30_000`；`submitComment` mutation 重写 `onMutate`/`onError` — 乐观插入评论树 + 完整回滚 |
+| [comments.routes.ts](backend/src/routes/comments.routes.ts) | `buildCommentTree(flat)` → `buildCommentTree(flat).reverse()` — 最新顶层评论在前，回复保持时间正序 |
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (562.63 KB JS, 76.85 KB CSS)
+
+### ✅ Phase 4.31: 壁纸音频跨导航持久化 (2026-06-23)
+
+**目标:** 用户开启壁纸音乐后访问博文再返回，音频自动恢复播放。
+
+**根因:** `Home` 组件导航切换时卸载/重挂载，`useState(true)` 将 `muted` 重置。
+
+**修复:**
+
+| 修改 | 说明 |
+|------|------|
+| `localStorage` key `memorystory_wallpaper_muted` | 持久化用户的静音偏好 |
+| `muted` 初始化 | `useState(() => localStorage.getItem(MUTED_KEY) !== 'false')` |
+| 挂载恢复 effect | `useEffect` 检测 `!muted` → 视频就绪后自动取消静音 + `play()` |
+| `toggleMute` 写入 | 切换时同步 `localStorage.setItem(MUTED_KEY, String(video.muted))` |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [Home.tsx](frontend/src/pages/Home.tsx) | `MUTED_KEY` 常量 + `muted` 初始化改 localStorage 读取 + 挂载恢复 effect + `toggleMute` 持久化 |
+
+**验证:** tsc ✓ · ESLint 0 ✓
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

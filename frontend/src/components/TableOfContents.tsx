@@ -104,9 +104,13 @@ export default function TableOfContents({
     }
   }, []);
 
-  // Auto-collapse when scrolling back to hero area
+  // Auto-expand when TOC becomes visible, auto-collapse when scrolling back to hero
   useEffect(() => {
-    if (!visible) setIsExpanded(false);
+    if (visible) {
+      setIsExpanded(true);
+    } else {
+      setIsExpanded(false);
+    }
   }, [visible]);
 
   // Scroll active item into view when panel expands
@@ -201,6 +205,13 @@ export default function TableOfContents({
               <X size={16} />
             </button>
           </div>
+          {currentLabel && (
+            <div className="px-4 py-2 border-b border-zinc-100/50 bg-blue-50/20 select-none">
+              <span className="text-xs text-zinc-500 truncate block">
+                当前章节：<span className="text-blue-600 font-medium">{currentLabel}</span>
+              </span>
+            </div>
+          )}
           <nav
             className="overflow-y-auto max-h-[calc(100vh-14rem)] py-2"
             aria-label="目录导航"

@@ -1668,6 +1668,39 @@ cd frontend && npm run build
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (562KB JS, 77KB CSS)
 
+### ✅ Phase 4.30: 评论实时刷新 (2026-06-23)
+
+**目标:** 评论提交后即时显示（不等待服务器往返），其他用户的评论自动拉取。
+
+**改良 1 — 乐观插入（Optimistic UI）:**
+
+`submitComment` 的 `onMutate` 现在将新评论立即写入缓存：
+
+| 场景 | 行为 |
+|------|------|
+| 顶层评论 | 追加到评论列表顶部 |
+| 回复评论 | 递归查找父评论，追加到其 `children` 末尾 |
+
+临时负 ID（`-Date.now()`）作为占位符，`onSettled` 触发 `invalidateQueries` 后自动替换为服务器返回的真实数据。
+
+**改良 2 — 30 秒轮询:**
+
+| 特性 | 实现 |
+|------|------|
+| 评论查询添加 `refetchInterval: 30_000` | 每 30 秒自动刷新评论列表 |
+| 后台暂停 | `refetchIntervalInBackground` 默认 `false`，标签页切到后台自动暂停 |
+
+**改良 3 — 错误回滚:**
+
+`onError` 同时恢复评论列表缓存和文章评论计数，避免提交失败后显示幽灵评论。`onMutate` 对 comments 和 post 两个 query 做 `cancelQueries` + 快照保存。
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | comments query 加 `refetchInterval: 30_000`；`submitComment` mutation 重写 `onMutate`/`onError` — 乐观插入评论树 + 完整回滚 |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (562.63 KB JS, 76.85 KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

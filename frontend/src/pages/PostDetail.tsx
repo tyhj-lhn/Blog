@@ -70,6 +70,7 @@ export default function PostDetail() {
     queryFn: () =>
       api.get<{ data: Comment[] }>(`/comments/${post!.id}`).then((r) => r.data),
     enabled: !!post?.id,
+    refetchInterval: 30_000, // Auto-refresh every 30s for new comments from other users
   });
 
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -86,28 +87,76 @@ export default function PostDetail() {
         ...data,
         postId: post!.id,
       }),
-    onMutate: async () => {
-      setSubmitError(null); // Clear previous error on new submission
-      // Cancel any outgoing post refetch so it doesn't overwrite our optimistic update
+    onMutate: async (newComment) => {
+      setSubmitError(null);
+
+      // Cancel outgoing queries to prevent race conditions
+      await queryClient.cancelQueries({ queryKey: ['comments', post?.id] });
       await queryClient.cancelQueries({ queryKey: ['post', slug] });
-      const previous = queryClient.getQueryData<Post>(['post', slug]);
-      if (previous) {
+
+      // Snapshot previous state for rollback
+      const previousComments = queryClient.getQueryData<Comment[]>(['comments', post?.id]);
+      const previousPost = queryClient.getQueryData<Post>(['post', slug]);
+
+      // Optimistic: insert comment into tree instantly
+      if (previousComments && post) {
+        const optimistic: Comment = {
+          id: -Date.now(), // temporary negative ID, replaced on refetch
+          content: newComment.content,
+          postId: post.id,
+          username: newComment.username,
+          email: newComment.email ?? null,
+          websiteUrl: newComment.websiteUrl ?? null,
+          parentId: newComment.parentId ?? null,
+          createdAt: new Date().toISOString(),
+          depth: newComment.parentId ? 1 : 0,
+          children: [],
+        };
+
+        if (newComment.parentId) {
+          // Recursively find parent and append optimistic reply
+          const addReply = (list: Comment[]): Comment[] =>
+            list.map((c) => {
+              if (c.id === newComment.parentId) {
+                return { ...c, children: [...c.children, optimistic] };
+              }
+              if (c.children.length > 0) {
+                return { ...c, children: addReply(c.children) };
+              }
+              return c;
+            });
+          queryClient.setQueryData<Comment[]>(['comments', post.id], addReply(previousComments));
+        } else {
+          // Top-level comment — prepend to root list
+          queryClient.setQueryData<Comment[]>(['comments', post.id], [
+            optimistic,
+            ...previousComments,
+          ]);
+        }
+      }
+
+      // Optimistic: increment comment count on post
+      if (previousPost) {
         queryClient.setQueryData<Post>(['post', slug], {
-          ...previous,
-          _count: { comments: previous._count.comments + 1 },
+          ...previousPost,
+          _count: { comments: previousPost._count.comments + 1 },
         });
       }
-      return { previous };
+
+      return { previousComments, previousPost };
     },
     onError: (_err, _vars, context) => {
-      // Rollback optimistic comment count
-      if (context?.previous) {
-        queryClient.setQueryData(['post', slug], context.previous);
+      // Rollback optimistic updates on failure
+      if (context?.previousComments) {
+        queryClient.setQueryData(['comments', post?.id], context.previousComments);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(['post', slug], context.previousPost);
       }
       setSubmitError('评论提交失败，请稍后重试');
     },
     onSettled: () => {
-      // Refetch both post (for authoritative _count.comments) and comments
+      // Refetch to replace optimistic data with authoritative server state
       queryClient.invalidateQueries({ queryKey: ['comments', post?.id] });
       queryClient.invalidateQueries({ queryKey: ['post', slug] });
     },

@@ -24,6 +24,8 @@ export default function PostEditor() {
   const [coverImage, setCoverImage] = useState('');
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const docFileInputRef = useRef<HTMLInputElement>(null);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const imageCursorPosRef = useRef<number>(0);
   const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<'DRAFT' | 'PUBLISHED'>('DRAFT');
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +183,13 @@ export default function PostEditor() {
       const textarea = contentTextareaRef.current;
       if (!textarea) return;
 
+      // Image action — open file picker instead of inserting text
+      if (action.type === 'image') {
+        imageCursorPosRef.current = textarea.selectionStart;
+        imageFileInputRef.current?.click();
+        return;
+      }
+
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = content.substring(start, end);
@@ -210,6 +219,58 @@ export default function PostEditor() {
         textarea.focus();
         textarea.setSelectionRange(cursorPos, cursorPos);
       }, 0);
+    },
+    [content],
+  );
+
+  const handleImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const allowed = ['image/jpeg', 'image/png'];
+      if (!allowed.includes(file.type)) {
+        setError('仅支持 JPG 和 PNG 格式');
+        if (imageFileInputRef.current) imageFileInputRef.current.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('图片大小不能超过 5MB');
+        if (imageFileInputRef.current) imageFileInputRef.current.value = '';
+        return;
+      }
+
+      setError(null);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await api.upload<{ url: string }>('/admin/upload', formData);
+
+        const cursorPos = imageCursorPosRef.current;
+        const before = '![' + file.name + '](';
+        const after = ')';
+        const insertText = before + result.url + after;
+        const newText =
+          content.substring(0, cursorPos) +
+          insertText +
+          content.substring(cursorPos);
+
+        setContent(newText);
+
+        // Restore focus and cursor after React re-render
+        setTimeout(() => {
+          const textarea = contentTextareaRef.current;
+          if (textarea) {
+            textarea.focus();
+            const newPos = cursorPos + insertText.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '图片上传失败');
+      } finally {
+        if (imageFileInputRef.current) imageFileInputRef.current.value = '';
+      }
     },
     [content],
   );
@@ -463,6 +524,13 @@ export default function PostEditor() {
                   accept=".md,.txt,.markdown"
                   className="hidden"
                   onChange={handleDocUpload}
+                />
+                <input
+                  ref={imageFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={handleImageUpload}
                 />
                 <button
                   type="button"

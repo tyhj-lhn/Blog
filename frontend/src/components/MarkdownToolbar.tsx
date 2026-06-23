@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export interface MarkdownAction {
-  type: 'wrap';
+  type: 'wrap' | 'image';
   before: string;
   after: string;
   placeholder: string;
@@ -59,7 +59,7 @@ const BUTTONS: ToolbarButton[] = [
   {
     icon: Image,
     label: '图片',
-    action: { type: 'wrap', before: '![', after: '](url)', placeholder: '图片描述' },
+    action: { type: 'image', before: '![', after: '](url)', placeholder: '图片描述' },
   },
   {
     icon: Code,

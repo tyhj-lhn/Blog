@@ -1651,6 +1651,23 @@ cd frontend && npm run build
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (560KB JS, 76KB CSS)
 
+### ✅ Phase 4.29: 编辑器图片插入 (2026-06-23)
+
+**问题:** Markdown 工具栏的图片按钮仅插入 `![图片描述](url)` 文本占位符，没有触发文件上传。用户必须手动替换 `url` 为实际图片地址。
+
+**根因:** [MarkdownToolbar.tsx](frontend/src/components/MarkdownToolbar.tsx) 图片按钮的 `action.type` 为 `'wrap'`，与粗体/斜体等完全一致。[PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) 的 `handleMarkdownAction` 将所有 wrap 动作统一处理为纯文本插入 — 没有文件选择器或上传逻辑。
+
+**修复:**
+
+| 文件 | 变更 |
+|------|------|
+| [MarkdownToolbar.tsx](frontend/src/components/MarkdownToolbar.tsx) | `MarkdownAction.type` 扩展为 `'wrap' \| 'image'`；图片按钮 action.type 改为 `'image'` |
+| [PostEditor.tsx](frontend/src/pages/admin/PostEditor.tsx) | 新增 `imageFileInputRef` + `imageCursorPosRef`；`handleMarkdownAction` 拦截 `type === 'image'` → 打开文件选择器；新增 `handleImageUpload` → 校验(JPG/PNG, ≤5MB) → `api.upload('/admin/upload')` → 在光标位置插入 `![文件名](url)`；新增隐藏 `<input type="file">` |
+
+**流程:** 点击图片按钮 → 文件选择器打开 → 选 JPG/PNG → 上传后端 → `![文件名](返回URL)` 自动插入 Markdown。
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (562KB JS, 77KB CSS)
+
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed
 - [ ] Responsive testing (375px / 768px / 1024px / 1440px)

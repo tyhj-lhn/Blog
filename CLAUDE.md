@@ -97,7 +97,9 @@ my_Blog/
 │       ├── index.css               # Google Fonts (Caveat+Quicksand) + Tailwind v4 @theme
 │       ├── lib/
 │       │   ├── api.ts              # Fetch wrapper: JWT inject, 401 refresh queue, api.get/post/put/del/upload
-│       │   └── auth.ts             # localStorage token CRUD
+│       │   ├── auth.ts             # localStorage token CRUD
+│       │   ├── slugifyHeading.ts   # Heading text → DOM id (dedup + Chinese hash fallback)
+│       │   └── parseHeadings.ts    # Regex h2/h3 extraction → tree + idMap
 │       ├── types/
 │       │   └── index.ts            # All shared TS interfaces (Post, Comment, Wallpaper, etc.)
 │       ├── hooks/
@@ -105,7 +107,8 @@ my_Blog/
 │       │   ├── useAuth.ts          # AuthContext + useAuth() hook
 │       │   ├── useLike.ts          # Like toggle hook (localStorage + optimistic + rollback)
 │       │   ├── useAutoSave.ts      # localStorage draft auto-save + beforeunload guard
-│       │   └── useDebounce.ts      # Debounce hook
+│       │   ├── useDebounce.ts      # Debounce hook
+│       │   └── useScrollSpy.ts     # IntersectionObserver scroll spy for TOC
 │       ├── components/
 │       │   ├── Layout.tsx          # Navbar (无登录链接) + Outlet (public blog layout)
 │       │   ├── AdminLayout.tsx     # 深色侧边栏 + 内容区管理后台布局
@@ -115,6 +118,8 @@ my_Blog/
 │       │   ├── MarkdownToolbar.tsx # 12按钮Markdown格式工具栏
 │       │   ├── PostPreview.tsx     # 发布预览 (模拟PostDetail外观)
 │       │   ├── Footer.tsx          # 首页页脚 — 版权 + 免责声明 + ICP备案
+│       │   ├── BackToTop.tsx       # 一键回到顶部 (fixed bottom-right, scroll>300px 淡入)
+│       │   ├── TableOfContents.tsx # 多级折叠目录 (fixed right, 2xl+显示, 章节高亮+提示)
 │       │   └── ...                 # PostCard, CommentTree, CommentForm, etc.
 │       └── pages/
 │           ├── Home.tsx            # Hero (video + API wallpaper) + post grid
@@ -1585,6 +1590,66 @@ cd frontend && npm run build
 | 音频 | AAC 193kbps | AAC 48kbps |
 
 **验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (553.76 KB JS, 74.23 KB CSS, 10.5MB 视频)
+
+### ✅ Phase 4.28: 博文页一键回到顶部 + 多级折叠目录 (2026-06-23)
+
+**目标:** 博文详情页右下角一键回到顶部按钮；右侧固定多级目录侧边栏，h2→h3 层级，滚动显隐 + 章节提示。
+
+**BackToTop 组件:**
+
+| 特性 | 实现 |
+|------|------|
+| 显示阈值 | `scrollY > 300px` 淡入，`<300px` 淡出 |
+| 位置 | `fixed bottom-8 right-8 z-40` — 右下角固定 |
+| 样式 | `rounded-full bg-white/80 backdrop-blur-md shadow-glass` 毛玻璃圆形按钮 |
+| 图标 | `ArrowUp` (Lucide) |
+| 滚动 | `window.scrollTo({ top: 0, behavior: 'smooth' })` |
+| 性能 | `requestAnimationFrame` + `passive: true` 节流 |
+
+**TableOfContents 组件:**
+
+| 特性 | 实现 |
+|------|------|
+| 定位 | `fixed right-[max(1rem,calc((100vw-64rem)/2-14rem-1rem))] top-28 z-30` — 右侧固定，不占文档流 |
+| 断点 | `hidden 2xl:block` — ≥1536px 显示，窄屏隐藏 |
+| 折叠态(默认) | `ListTree` 图标圆形毛玻璃按钮 + 当前章节名药丸标签（仅在正文区域显示） |
+| 展开态 | `w-56` 面板: "目录"标题 + X关闭 + 多级列表(h2/h3缩进) |
+| 高亮 | `text-blue-600 border-l-2 border-blue-500 bg-blue-50/50` — 蓝色左边框标注当前章节 |
+| 章节提示 | 折叠态按钮左侧浮现 `currentLabel` 毛玻璃药丸标签 |
+| 滚动显隐 | `scrollY > 300px` 淡入，hero 区隐藏；展开后面板不受影响 |
+| Hero 区自动收起 | `visible===false` → `setIsExpanded(false)` — 滚回 hero 区时收起面板 |
+| 展开联动 | `isExpanded` 时自动 `scrollIntoView` 当前活跃章节 |
+| 关闭方式 | X按钮 / Escape键 / 点击面板外部 / 点击目录项后自动收起 |
+
+**新增工具函数:**
+
+| 文件 | 用途 |
+|------|------|
+| `frontend/src/lib/slugifyHeading.ts` | 标题文本→HTML id（去重、纯中文 hash fallback） |
+| `frontend/src/lib/parseHeadings.ts` | 正则提取 h2/h3 → 剥离代码块 + 行内格式 → 树结构 + idMap |
+| `frontend/src/hooks/useScrollSpy.ts` | IntersectionObserver 追踪当前可见标题（rootMargin: `-80px 0px -70% 0px`） |
+
+**PostDetail.tsx 集成:**
+
+| 变更 | 说明 |
+|------|------|
+| `useMemo` 解析标题 | `parseHeadings(post.content)` → `{ tree, idMap }` |
+| `useScrollSpy(tocIds)` | 返回当前活跃标题 id |
+| react-markdown `components.h2/h3` | `getPlainText(children)` → `idMap.get(text)` → 注入 `id` 属性 |
+| `<BackToTop />` | 页面级固定按钮 |
+| `<TableOfContents headings={tocHeadings} activeId={activeId} />` | 仅 `tocHeadings.length > 0` 时渲染 |
+
+**文件变更:**
+| 文件 | 变更 |
+|------|------|
+| [BackToTop.tsx](frontend/src/components/BackToTop.tsx) | **新建** — 一键回到顶部 |
+| [TableOfContents.tsx](frontend/src/components/TableOfContents.tsx) | **新建** — 多级折叠目录面板 |
+| [slugifyHeading.ts](frontend/src/lib/slugifyHeading.ts) | **新建** — 标题→DOM id |
+| [parseHeadings.ts](frontend/src/lib/parseHeadings.ts) | **新建** — Markdown 标题提取+树构建 |
+| [useScrollSpy.ts](frontend/src/hooks/useScrollSpy.ts) | **新建** — IntersectionObserver 滚动监听 |
+| [PostDetail.tsx](frontend/src/pages/PostDetail.tsx) | 集成 TOC + BackToTop + 标题 id 注入 |
+
+**验证:** tsc ✓ · ESLint 0 ✓ · vite build ✓ (560KB JS, 76KB CSS)
 
 ### ⏳ Phase 5: Polish (Pending)
 - [ ] SEO meta tags + RSS feed

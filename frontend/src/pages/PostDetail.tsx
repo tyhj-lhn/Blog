@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Eye, Tag as TagIcon, Heart, MessageCircle } from 'lucide-react';
@@ -10,6 +11,21 @@ import type { Post, Comment } from '../types';
 import { useLikePost } from '../hooks/useLike';
 import CommentTree from '../components/CommentTree';
 import CommentForm from '../components/CommentForm';
+import BackToTop from '../components/BackToTop';
+import { parseHeadings } from '../lib/parseHeadings';
+import { useScrollSpy } from '../hooks/useScrollSpy';
+import TableOfContents from '../components/TableOfContents';
+
+function getPlainText(node: React.ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(getPlainText).join('');
+  if (React.isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode };
+    return getPlainText(props.children);
+  }
+  return '';
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('zh-CN', {
@@ -96,6 +112,19 @@ export default function PostDetail() {
       queryClient.invalidateQueries({ queryKey: ['post', slug] });
     },
   });
+
+  // ---- TOC: extract headings and scroll spy ----
+  const { tree: tocHeadings, idMap } = useMemo(
+    () => parseHeadings(post?.content ?? ''),
+    [post?.content],
+  );
+
+  const tocIds = useMemo(
+    () => tocHeadings.flatMap((h) => [h.id, ...h.children.map((c) => c.id)]),
+    [tocHeadings],
+  );
+
+  const activeId = useScrollSpy(tocIds);
 
   if (postLoading) {
     return (
@@ -218,6 +247,14 @@ export default function PostDetail() {
                       loading="lazy"
                     />
                   ),
+                  h2: ({ children, ...props }) => {
+                    const id = idMap.get(getPlainText(children));
+                    return <h2 id={id} {...props}>{children}</h2>;
+                  },
+                  h3: ({ children, ...props }) => {
+                    const id = idMap.get(getPlainText(children));
+                    return <h3 id={id} {...props}>{children}</h3>;
+                  },
                 }}
               >
                 {post.content}
@@ -267,6 +304,12 @@ export default function PostDetail() {
           </section>
         </div>
       </section>
+
+      <BackToTop />
+
+      {tocHeadings.length > 0 && (
+        <TableOfContents headings={tocHeadings} activeId={activeId} />
+      )}
     </div>
   );
 }
